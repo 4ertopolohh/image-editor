@@ -1,0 +1,49 @@
+@use '../../styles/variables' as *;
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.topRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 20px;
+}
+
+.kicker {
+    display: inline-flex;
+    width: fit-content;
+    border-radius: $radius-pill;
+    padding: 6px 12px;
+    border: 1px solid rgba(170, 191, 245, 0.28);
+    background: rgba(53, 74, 112, 0.34);
+    font-size: 0.73rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $color-text-muted;
+}
+
+.title {
+    font-family: $font-heading;
+    font-size: clamp(1.85rem, 4vw, 2.7rem);
+    letter-spacing: 0.02em;
+    color: $color-text;
+}
+
+.subtitle {
+    max-width: 680px;
+    color: $color-text-muted;
+    line-height: 1.45;
+}
+
+@media (max-width: $breakpoint-mobile) {
+    .topRow {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

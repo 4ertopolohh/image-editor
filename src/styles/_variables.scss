@@ -1,0 +1,58 @@
+$font-body: 'Actay', 'Segoe UI', sans-serif;
+$font-heading: 'Actay Wide', 'Segoe UI', sans-serif;
+$font-accent: 'AKONY', 'Segoe UI', sans-serif;
+
+$color-bg-strong: #04060a;
+$color-bg-soft: #0b1220;
+$color-panel: rgba(11, 17, 27, 0.62);
+$color-panel-alt: rgba(18, 26, 40, 0.58);
+$color-border: rgba(204, 219, 255, 0.18);
+$color-border-strong: rgba(204, 219, 255, 0.32);
+$color-shadow: rgba(0, 0, 0, 0.38);
+$color-text: #e8edf8;
+$color-text-muted: #95a2bf;
+$color-success: #63d9a0;
+$color-danger: #ff8686;
+$color-info: #9fb4ff;
+$color-focus: #7d98ff;
+$color-accent: #8ca6ff;
+
+$radius-sm: 12px;
+$radius-md: 18px;
+$radius-lg: 24px;
+$radius-pill: 999px;
+
+$max-layout-width: 1220px;
+
+$transition-style: 500ms ease;
+$duration-fast: 160ms;
+$duration-normal: 260ms;
+$easing-standard: cubic-bezier(0.2, 0.9, 0.22, 1);
+$transition-interactive:
+    color $duration-normal $easing-standard,
+    background-color $duration-normal $easing-standard,
+    border-color $duration-normal $easing-standard,
+    box-shadow $duration-normal $easing-standard,
+    transform $duration-normal $easing-standard,
+    opacity $duration-normal $easing-standard;
+
+$breakpoint-tablet: 1024px;
+$breakpoint-mobile: 720px;
+
+@mixin glass-panel($alt: false) {
+    @if $alt {
+        background: $color-panel-alt;
+    } @else {
+        background: $color-panel;
+    }
+
+    border: 1px solid $color-border;
+    box-shadow: 0 22px 48px $color-shadow;
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+@mixin focus-ring {
+    outline: 2px solid $color-focus;
+    outline-offset: 2px;
+}

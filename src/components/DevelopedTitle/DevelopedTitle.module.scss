@@ -1,0 +1,16 @@
+@use '../../styles/variables' as *;
+
+.developedTitle{
+    font-size: 20px;
+
+    a{
+        font-family: $font-accent;
+        font-size: 30px;
+        text-decoration: none;
+        transition: $transition-style;
+
+        &:hover{
+            color: #F4FF76;
+        }
+    }
+}

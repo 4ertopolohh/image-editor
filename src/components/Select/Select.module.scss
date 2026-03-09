@@ -1,0 +1,49 @@
+@use '../../styles/variables' as *;
+
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $color-text-muted;
+}
+
+.control {
+    position: relative;
+}
+
+.select {
+    width: 100%;
+    border-radius: $radius-sm;
+    padding: 12px 42px 12px 12px;
+    border: 1px solid $color-border;
+    background: rgba(31, 44, 68, 0.58);
+    color: $color-text;
+    transition: $transition-interactive;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.select:hover:not(:disabled) {
+    border-color: $color-border-strong;
+}
+
+.select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-48%);
+    font-size: 0.68rem;
+    color: $color-text-muted;
+    pointer-events: none;
+}

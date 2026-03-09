@@ -1,0 +1,32 @@
+@use '../../styles/variables' as *;
+
+.zone {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.hiddenInput {
+    display: none;
+}
+
+.title {
+    font-family: $font-heading;
+    font-size: 1.02rem;
+    letter-spacing: 0.03em;
+}
+
+.description {
+    color: $color-text-muted;
+    line-height: 1.4;
+    font-size: 0.94rem;
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}

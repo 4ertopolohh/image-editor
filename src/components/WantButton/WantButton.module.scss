@@ -1,0 +1,32 @@
+﻿.wantButton {
+  background-color: #76a6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: all 500ms ease;
+  border-radius: 15px;
+  border: none;
+  margin: 0;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  color: #fff;
+  font-family: 'Actay', 'Segoe UI', sans-serif;
+  text-decoration: none;
+
+  span {
+    font-size: 16px;
+    font-family: 'Actay Wide', 'Segoe UI', sans-serif;
+    color: #000;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+  }
+
+  &:hover {
+    transform: scale(0.99);
+    background-color: #fff;
+  }
+}

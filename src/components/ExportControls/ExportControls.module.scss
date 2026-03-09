@@ -1,0 +1,69 @@
+@use '../../styles/variables' as *;
+
+.panel {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.title {
+    font-family: $font-heading;
+    font-size: 1.02rem;
+    letter-spacing: 0.03em;
+}
+
+.quality {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.compressionToggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.compressionCheckbox {
+    width: 16px;
+    height: 16px;
+    accent-color: $color-accent;
+}
+
+.compressionLabel {
+    font-size: 0.86rem;
+    letter-spacing: 0.02em;
+    color: $color-text;
+}
+
+.compressionCheckbox:disabled + .compressionLabel {
+    color: $color-text-muted;
+}
+
+.qualityLabel {
+    color: $color-text-muted;
+    font-size: 0.84rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.qualityRange {
+    width: 100%;
+    accent-color: $color-accent;
+}
+
+.qualityHint {
+    font-size: 0.84rem;
+    color: $color-text-muted;
+    line-height: 1.4;
+}
+
+.compressionHint {
+    font-size: 0.84rem;
+    color: $color-text-muted;
+    line-height: 1.4;
+}

@@ -1,0 +1,237 @@
+﻿import type { TranslationDictionary } from '../types/i18n'
+
+export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
+  ru: {
+    header: {
+      kicker: 'React + Vite + TypeScript',
+      title: 'Фоторедактор',
+      subtitle: 'Загрузите или вставьте изображение, обрежьте его и экспортируйте в PNG/JPG/WebP/ICO.',
+      developedBy: 'Разработано',
+      studioName: 'Немида Студио',
+    },
+    languageToggle: {
+      ariaLabel: 'Переключение языка',
+      ruLabel: 'Русский',
+      enLabel: 'Английский',
+    },
+    uploadZone: {
+      sectionAriaLabel: 'Загрузка изображения',
+      inputAriaLabel: 'Выбрать файл изображения',
+      title: 'Источник изображения',
+      description: 'Выберите файл или вставьте изображение из буфера через Ctrl+V / Cmd+V.',
+      selectButton: 'Выбрать изображение',
+      clearButton: 'Очистить редактор',
+    },
+    cropControls: {
+      sectionAriaLabel: 'Настройки обрезки',
+      title: 'Обрезка',
+      presetGroupAriaLabel: 'Пресеты соотношения сторон',
+      aspectRatioAriaPrefix: 'Соотношение сторон',
+      applyButton: 'Применить обрезку',
+      applyingButton: 'Применение...',
+      applyAriaLabel: 'Применить обрезку к изображению',
+      resetButton: 'Сбросить до оригинала',
+      resetAriaLabel: 'Вернуть исходное изображение',
+    },
+    exportControls: {
+      sectionAriaLabel: 'Настройки экспорта',
+      title: 'Экспорт',
+      formatLabel: 'Формат файла',
+      formatAriaLabel: 'Выбор формата экспорта',
+      compressionToggleLabel: 'Умное сжатие',
+      compressionToggleAriaLabel: 'Включить умное сжатие при экспорте',
+      compressionTargetLabel: (value) => `Целевой размер: ${value} KB`,
+      compressionTargetAriaLabel: 'Целевой размер файла после сжатия',
+      compressionMaxDimensionLabel: (value) => `Максимальная сторона: ${value}px`,
+      compressionMaxDimensionAriaLabel: 'Ограничение максимальной стороны изображения',
+      compressionHint: 'Редактор старается сохранить максимальное качество и уложить файл в заданный размер.',
+      compressionIcoHint: 'Для ICO применяется фиксированный размер 256x256.',
+      qualityLabel: (value) => `Качество: ${Math.round(value * 100)}%`,
+      qualityAriaLabel: 'Качество экспорта',
+      qualityHint: 'Ползунок качества доступен только для JPG и WebP.',
+      saveButton: 'Сохранить изображение',
+      savingButton: 'Сохранение...',
+      saveAriaLabel: 'Сохранить отредактированное изображение',
+    },
+    imageEditor: {
+      sectionAriaLabel: 'Редактор обрезки изображения',
+      emptyTitle: 'Изображение не выбрано',
+      emptyText: 'Загрузите или вставьте изображение, чтобы начать редактирование.',
+      imageAlt: 'Текущее изображение для редактирования',
+    },
+    previewPane: {
+      sectionAriaLabel: 'Панель предпросмотра',
+      title: 'Предпросмотр',
+      placeholderTitle: 'Результат появится здесь',
+      placeholderText: 'Примените обрезку, чтобы обновить превью, затем экспортируйте в нужном формате.',
+      imageAlt: 'Предпросмотр результата',
+    },
+    adSection: {
+      sectionAriaLabel: 'Рекламный блок Nemida Studio',
+      title: 'сайт - старт успеха',
+      subtitle:
+        'Хотите, чтобы ваш бизнес вышел на новый уровень? Немида Студио создаст сайт, который станет мощным инструментом карьерного роста. Надёжная платформа, современный дизайн, продуманная структура и чистый код.',
+      wantButton: 'ХОЧУ!',
+      wantButtonAriaLabel: 'Перейти в Telegram Nemida Studio',
+    },
+    status: {
+      initial: 'Выберите файл изображения или нажмите Ctrl+V / Cmd+V, чтобы вставить из буфера.',
+      editorCleared: 'Редактор очищен. Загрузите новое изображение, чтобы продолжить.',
+      imageUploaded: 'Изображение загружено. Выберите пресет обрезки и примените его.',
+      imagePasted: 'Изображение вставлено из буфера. Теперь его можно обрезать и экспортировать.',
+      imageOpenFailed: 'Не удалось открыть это изображение. Попробуйте другой файл.',
+      cropApplied: 'Обрезка успешно применена.',
+      cropFailed: 'Не удалось применить обрезку. Попробуйте выбрать другую область.',
+      originalRestored: 'Исходное изображение восстановлено.',
+      imageSavedAs: (fileName) => `Изображение сохранено как ${fileName}.`,
+      exportFailed: 'Экспорт не удался. Попробуйте другой формат.',
+    },
+    validation: {
+      notImage: 'Можно загружать только изображения.',
+      unsupportedFormat: 'Формат файла не поддерживается. Используйте PNG, JPG, WebP, BMP, GIF или ICO.',
+      fileTooLarge: (maxSizeMb) => `Файл слишком большой. Максимальный размер: ${maxSizeMb} MB.`,
+      dimensionTooLarge: (maxDimension) => `Изображение слишком большое по стороне. Лимит: ${maxDimension}px.`,
+      pixelCountTooLarge: 'Изображение слишком большое по количеству пикселей для стабильной работы редактора.',
+    },
+    common: {
+      clipboardFallbackFileName: 'изображение-из-буфера.png',
+    },
+    cropPresetLabels: {
+      free: 'Свободно',
+      '1:1': '1:1',
+      '16:9': '16:9',
+      '4:3': '4:3',
+      '3:4': '3:4',
+      '9:16': '9:16',
+    },
+    exportFormatLabels: {
+      png: 'PNG',
+      jpg: 'JPG / JPEG',
+      webp: 'WebP',
+      ico: 'ICO (256x256)',
+    },
+  },
+  en: {
+    header: {
+      kicker: 'React + Vite + TypeScript',
+      title: 'Photo Editor',
+      subtitle: 'Upload or paste an image, crop it, and export it as PNG/JPG/WebP/ICO.',
+      developedBy: 'Developed by',
+      studioName: 'Nemida Studio',
+    },
+    languageToggle: {
+      ariaLabel: 'Language switcher',
+      ruLabel: 'Russian',
+      enLabel: 'English',
+    },
+    uploadZone: {
+      sectionAriaLabel: 'Image upload',
+      inputAriaLabel: 'Choose image file',
+      title: 'Image Source',
+      description: 'Select a file or paste an image from clipboard with Ctrl+V / Cmd+V.',
+      selectButton: 'Select image',
+      clearButton: 'Clear editor',
+    },
+    cropControls: {
+      sectionAriaLabel: 'Crop controls',
+      title: 'Crop',
+      presetGroupAriaLabel: 'Aspect ratio presets',
+      aspectRatioAriaPrefix: 'Aspect ratio',
+      applyButton: 'Apply crop',
+      applyingButton: 'Applying...',
+      applyAriaLabel: 'Apply crop to image',
+      resetButton: 'Reset to original',
+      resetAriaLabel: 'Restore original image',
+    },
+    exportControls: {
+      sectionAriaLabel: 'Export controls',
+      title: 'Export',
+      formatLabel: 'File format',
+      formatAriaLabel: 'Select export format',
+      compressionToggleLabel: 'Smart compression',
+      compressionToggleAriaLabel: 'Enable smart compression for export',
+      compressionTargetLabel: (value) => `Target size: ${value} KB`,
+      compressionTargetAriaLabel: 'Target file size after compression',
+      compressionMaxDimensionLabel: (value) => `Max side: ${value}px`,
+      compressionMaxDimensionAriaLabel: 'Maximum image side limit',
+      compressionHint: 'The editor keeps the highest possible quality while trying to fit the target size.',
+      compressionIcoHint: 'ICO export is always generated at a fixed 256x256 size.',
+      qualityLabel: (value) => `Quality: ${Math.round(value * 100)}%`,
+      qualityAriaLabel: 'Export quality',
+      qualityHint: 'Quality slider is available for JPG and WebP only.',
+      saveButton: 'Save image',
+      savingButton: 'Saving...',
+      saveAriaLabel: 'Save edited image',
+    },
+    imageEditor: {
+      sectionAriaLabel: 'Image crop editor',
+      emptyTitle: 'No image selected',
+      emptyText: 'Upload or paste an image to start editing.',
+      imageAlt: 'Current editable image',
+    },
+    previewPane: {
+      sectionAriaLabel: 'Preview pane',
+      title: 'Preview',
+      placeholderTitle: 'Result will appear here',
+      placeholderText: 'Apply crop to update the preview, then export in the desired format.',
+      imageAlt: 'Edited preview',
+    },
+    adSection: {
+      sectionAriaLabel: 'Nemida Studio promo section',
+      title: 'Web-\nsite is Suc-\ncess',
+      subtitle:
+        'Want to take your business to the next level? Nemida Studio will build a website that becomes a strong growth tool. Reliable platform, modern design, thoughtful structure, and clean code.',
+      wantButton: 'I WANT IT!',
+      wantButtonAriaLabel: 'Open Nemida Studio in Telegram',
+    },
+    status: {
+      initial: 'Select an image file or press Ctrl+V / Cmd+V to paste from clipboard.',
+      editorCleared: 'Editor was cleared. Upload a new image to continue.',
+      imageUploaded: 'Image uploaded. Select a crop preset and apply it.',
+      imagePasted: 'Image pasted from clipboard. You can crop and export it now.',
+      imageOpenFailed: 'Failed to open this image. Please try another file.',
+      cropApplied: 'Crop applied successfully.',
+      cropFailed: 'Could not apply crop. Try again with another crop area.',
+      originalRestored: 'Original image restored.',
+      imageSavedAs: (fileName) => `Image saved as ${fileName}.`,
+      exportFailed: 'Export failed. Try a different format.',
+    },
+    validation: {
+      notImage: 'Only image files are supported.',
+      unsupportedFormat: 'Unsupported file format. Use PNG, JPG, WebP, BMP, GIF, or ICO.',
+      fileTooLarge: (maxSizeMb) => `File is too large. Maximum allowed size: ${maxSizeMb} MB.`,
+      dimensionTooLarge: (maxDimension) => `Image side is too large. Limit: ${maxDimension}px.`,
+      pixelCountTooLarge: 'Image has too many pixels for stable editor performance.',
+    },
+    common: {
+      clipboardFallbackFileName: 'clipboard-image.png',
+    },
+    cropPresetLabels: {
+      free: 'Free',
+      '1:1': '1:1',
+      '16:9': '16:9',
+      '4:3': '4:3',
+      '3:4': '3:4',
+      '9:16': '9:16',
+    },
+    exportFormatLabels: {
+      png: 'PNG',
+      jpg: 'JPG / JPEG',
+      webp: 'WebP',
+      ico: 'ICO (256x256)',
+    },
+  },
+}
+
+export const DEFAULT_LANGUAGE: 'ru' | 'en' = 'en'
+export const LANGUAGE_STORAGE_KEY = 'image-editor-language'
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,67 @@
+@use '../../styles/variables' as *;
+
+.button {
+    border: 1px solid transparent;
+    border-radius: $radius-pill;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: $font-body;
+    font-weight: 600;
+    line-height: 1;
+    transition: $transition-interactive;
+    user-select: none;
+}
+
+.medium {
+    padding: 13px 18px;
+    font-size: 0.95rem;
+}
+
+.small {
+    padding: 10px 14px;
+    font-size: 0.86rem;
+}
+
+.fullWidth {
+    width: 100%;
+}
+
+.primary {
+    background: linear-gradient(135deg, rgba(128, 159, 255, 0.92), rgba(92, 132, 255, 0.9));
+    color: #081021;
+    border-color: rgba(183, 201, 255, 0.42);
+    box-shadow: 0 14px 30px rgba(62, 98, 200, 0.35);
+}
+
+.secondary {
+    background: rgba(123, 150, 230, 0.16);
+    color: $color-text;
+    border-color: $color-border;
+}
+
+.ghost {
+    background: transparent;
+    color: $color-text-muted;
+    border-color: rgba(162, 177, 218, 0.22);
+}
+
+.button:hover:not(:disabled) {
+    border-color: $color-border-strong;
+    transform: translateY(-1px);
+}
+
+.primary:hover:not(:disabled) {
+    box-shadow: 0 16px 34px rgba(72, 112, 223, 0.4);
+}
+
+.button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}

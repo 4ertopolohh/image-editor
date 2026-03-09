@@ -1,0 +1,85 @@
+@use '../../styles/variables' as *;
+
+.toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(170, 191, 245, 0.28);
+    border-radius: $radius-pill;
+    padding: 3px;
+    background: rgba(30, 42, 64, 0.42);
+    appearance: none;
+    cursor: pointer;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.toggle::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border: 1px solid rgba(167, 189, 252, 0.45);
+    border-radius: $radius-pill;
+    background: rgba(121, 148, 230, 0.3);
+    box-shadow: 0 10px 22px rgba(7, 10, 16, 0.35);
+    transform: translateX(0);
+    transition:
+        transform $duration-normal $easing-standard,
+        border-color $duration-normal $easing-standard,
+        background-color $duration-normal $easing-standard;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.toggle[data-language='en']::before {
+    transform: translateX(100%);
+}
+
+.toggle:focus-visible {
+    outline: 2px solid rgba(167, 189, 252, 0.9);
+    outline-offset: 2px;
+}
+
+.button {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    border: 1px solid transparent;
+    border-radius: $radius-pill;
+    padding: 7px 10px;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: $color-text-muted;
+    background: transparent;
+    transition: color $duration-normal $easing-standard;
+    pointer-events: none;
+    user-select: none;
+}
+
+.label {
+    display: inline-flex;
+    align-items: center;
+    height: 9px;
+    line-height: 5px;
+}
+
+.toggle:hover .button:not(.buttonActive) {
+    color: $color-text;
+}
+
+.buttonActive {
+    color: $color-text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toggle::before,
+    .button {
+        transition-duration: 0ms;
+    }
+}

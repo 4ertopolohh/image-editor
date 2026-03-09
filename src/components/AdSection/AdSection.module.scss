@@ -1,0 +1,187 @@
+@use '../../styles/variables' as *;
+
+.adSection {
+    position: relative;
+    left: 50%;
+    right: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    min-height: clamp(520px, 58vw, 750px);
+    padding-top: clamp(44px, 8vw, 100px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    overflow: visible;
+
+    .spirals {
+        position: absolute;
+        inset: 0 0 auto;
+        width: 100%;
+        min-width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 0;
+        opacity: 0;
+        transition: opacity 280ms ease;
+        will-change: opacity;
+        pointer-events: none;
+    }
+
+    .spiralsVisible {
+        opacity: 1;
+    }
+
+    .adSectionWrapper {
+        width: 100%;
+        min-height: 310px;
+        padding: 34px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(47, 47, 47, 0.64);
+        -webkit-backdrop-filter: blur(15px);
+        backdrop-filter: blur(15px);
+        position: relative;
+        z-index: 1;
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 520ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: opacity, transform;
+
+        .container {
+            width: 100%;
+            max-width: 1242px;
+            padding: 0 clamp(20px, 4vw, 42px);
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            align-items: center;
+            gap: clamp(24px, 4vw, 56px);
+            margin: 0 auto;
+
+            .adSectionTitle {
+                h1 {
+                    max-width: 560px;
+                    font-size: clamp(2.25rem, 6vw, 4rem);
+                    line-height: 1.03;
+                    letter-spacing: 0.01em;
+                    font-family: $font-accent;
+                    color: $color-text;
+                    text-wrap: balance;
+                }
+            }
+
+            .adSectionDescription {
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                flex-direction: column;
+                gap: 24px;
+
+                .adSectionSubtitle {
+                    max-width: 560px;
+                    font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+                    line-height: 1.45;
+                    font-weight: 400;
+                    font-family: $font-body;
+                    color: $color-text;
+                }
+            }
+        }
+    }
+
+    .adSectionWrapperVisible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: $breakpoint-tablet) {
+    .adSection {
+        min-height: 0;
+        padding-top: 56px;
+
+        .spirals {
+            opacity: 0.62;
+        }
+
+        .adSectionWrapper {
+            padding: 30px 0;
+
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+
+                .adSectionTitle {
+                    h1 {
+                        max-width: 100%;
+                    }
+                }
+
+                .adSectionDescription {
+                    gap: 18px;
+
+                    .adSectionSubtitle {
+                        max-width: 100%;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $breakpoint-mobile) {
+    .adSection {
+        padding-top: 34px;
+
+        .spirals {
+            opacity: 0.35;
+            justify-content: center;
+
+            > :nth-child(2) {
+                display: none;
+            }
+        }
+
+        .adSectionWrapper {
+            min-height: 0;
+            padding: 24px 0;
+
+            .container {
+                padding: 0 14px;
+
+                .adSectionTitle {
+                    h1 {
+                        font-size: clamp(1.75rem, 10vw, 2.45rem);
+                    }
+                }
+
+                .adSectionDescription {
+                    .adSectionSubtitle {
+                        font-size: 1rem;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .adSection {
+        .spirals {
+            opacity: 1;
+            transition: none;
+        }
+
+        .adSectionWrapper {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+    }
+}

@@ -1,0 +1,59 @@
+@use '../../styles/variables' as *;
+
+.panel {
+    @include glass-panel(true);
+    border-radius: $radius-lg;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.title {
+    font-family: $font-heading;
+    font-size: 1.02rem;
+    letter-spacing: 0.03em;
+}
+
+.presetGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.presetButton {
+    border-radius: $radius-sm;
+    border: 1px solid rgba(170, 192, 248, 0.2);
+    background: rgba(80, 103, 156, 0.16);
+    color: $color-text-muted;
+    min-height: 38px;
+    transition: $transition-interactive;
+}
+
+.presetButton:hover:not(:disabled) {
+    color: $color-text;
+    border-color: $color-border-strong;
+}
+
+.presetButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.presetButtonActive {
+    color: $color-text;
+    border-color: rgba(151, 177, 255, 0.62);
+    background: rgba(115, 143, 226, 0.28);
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (max-width: $breakpoint-mobile) {
+    .presetGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

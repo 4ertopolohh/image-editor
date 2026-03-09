@@ -1,0 +1,65 @@
+@use './variables' as *;
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    color: $color-text;
+    font-family: $font-body;
+    background:
+        radial-gradient(1200px 700px at 9% -8%, rgba(99, 129, 229, 0.26), transparent 58%),
+        radial-gradient(1000px 800px at 100% 10%, rgba(65, 118, 172, 0.22), transparent 60%),
+        linear-gradient(175deg, $color-bg-strong 0%, $color-bg-soft 100%);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+    margin: 0;
+}
+
+button,
+input,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+img {
+    display: block;
+    max-width: 100%;
+}
+
+ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+a {
+    color: inherit;
+}
+
+:focus-visible {
+    @include focus-ring;
+}
