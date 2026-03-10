@@ -1,0 +1,38 @@
+@use '../../styles/variables' as *;
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 9, 15, 0.44);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
+
+.ring {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid rgba(159, 182, 250, 0.24);
+    border-top-color: rgba(186, 208, 255, 0.98);
+    border-right-color: rgba(137, 166, 243, 0.76);
+    box-shadow:
+        0 0 0 1px rgba(176, 199, 255, 0.18),
+        0 0 24px rgba(127, 157, 245, 0.28);
+    animation: loader-spin 780ms linear infinite;
+}
+
+@keyframes loader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ring {
+        animation-duration: 1.8s;
+    }
+}

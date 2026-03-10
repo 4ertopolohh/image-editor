@@ -6,6 +6,7 @@ import { CropControls } from './components/CropControls/CropControls'
 import { ExportControls } from './components/ExportControls/ExportControls'
 import { Header } from './components/Header/Header'
 import { ImageEditor } from './components/ImageEditor/ImageEditor'
+import { Loader } from './components/Loader/Loader'
 import { PreviewPane } from './components/PreviewPane/PreviewPane'
 import { UploadZone } from './components/UploadZone/UploadZone'
 import { AdSection } from './components/AdSection/AdSection'
@@ -195,6 +196,7 @@ function App() {
       !isExporting,
   )
   const canExport = Boolean(currentImage && !isApplyingCrop && !isRotating && !isExporting)
+  const isBusy = isApplyingCrop || isRotating || isExporting
 
   const setNewSourceImage = useCallback(
     (nextImage: LoadedImage): void => {
@@ -629,6 +631,8 @@ function App() {
         </div>
 
         <AdSection copy={dictionary.adSection} />
+
+        {isBusy ? <Loader /> : null}
       </div>
     </AppLayout>
   )
