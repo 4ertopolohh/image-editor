@@ -1,73 +1,152 @@
-# React + TypeScript + Vite
+﻿# Nemida Studio Image Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![React 19](https://img.shields.io/badge/React-19-20232a?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7.x-646cff?logo=vite&logoColor=white)](https://vite.dev/)
+[![Sass](https://img.shields.io/badge/Sass-Stylesheet-bf4080?logo=sass&logoColor=white)](https://sass-lang.com/)
 
-Currently, two official plugins are available:
+Онлайн-фоторедактор для быстрой обработки изображений прямо в браузере: загрузка или вставка из буфера, обрезка, поворот, скругление углов и экспорт в несколько форматов.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Live Demo:** https://4ertopolohh.github.io/image-editor-view/
 
-## React Compiler
+![Preview](public/og-image.png)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Содержание
 
-## Expanding the ESLint configuration
+- [Функциональность](#функциональность)
+- [Технологии](#технологии)
+- [Запуск локально](#запуск-локально)
+- [Скрипты](#скрипты)
+- [SEO](#seo)
+- [Деплой](#деплой)
+- [Структура проекта](#структура-проекта)
+- [Ограничения и особенности](#ограничения-и-особенности)
+- [Контакты](#контакты)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Функциональность
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Загрузка изображения из файла (`PNG`, `JPG/JPEG`, `WebP`, `BMP`, `GIF`, `ICO`).
+- Вставка изображения из буфера обмена (`Ctrl+V` / `Cmd+V`).
+- Обрезка с пресетами: `Free`, `1:1`, `16:9`, `4:3`, `3:4`, `9:16`.
+- Поворот изображения на 90 градусов.
+- Скругление каждого угла отдельно (0-50%).
+- Экспорт в `PNG`, `JPG`, `WebP`, `ICO (256x256)`.
+- Умное сжатие при экспорте: целевой размер файла + ограничение максимальной стороны.
+- Валидация входных файлов по типу, размеру и разрешению.
+- Интерфейс на двух языках (`RU/EN`) с сохранением выбора в `localStorage`.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Технологии
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `React 19`
+- `TypeScript`
+- `Vite`
+- `Sass (SCSS modules)`
+- `react-image-crop`
+- `Canvas API` для обработки и экспорта изображений
+
+## Запуск локально
+
+### 1) Требования
+
+- `Node.js` 20+
+- `npm` 10+
+
+### 2) Установка
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 3) Режим разработки
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+### 4) Production-сборка
+
+```bash
+npm run build
+npm run preview
+```
+
+## Скрипты
+
+- `npm run dev` - запуск dev-сервера Vite
+- `npm run lint` - запуск ESLint
+- `npm run build` - сборка приложения
+- `npm run preview` - локальный просмотр production-сборки
+- `npm run build:pages` - сборка с base path для GitHub Pages (`/image-editor-view/`)
+- `npm run deploy` - публикация `dist/` в отдельный pages-репозиторий
+
+## SEO
+
+В проекте реализована базовая SEO-оптимизация на уровне кода:
+
+- `title`, `meta description`, `canonical`
+- `Open Graph` + `Twitter Cards`
+- `robots` и `googlebot` meta directives
+- `schema.org` (`WebApplication` + `WebSite`) через JSON-LD
+- `robots.txt` и `sitemap.xml`
+- корректная структура заголовков (`h1-h3`) и семантические HTML-секции
+- мультиязычные SEO-метаданные (`ru/en`) с `og:locale` и `og:locale:alternate`
+
+## Деплой
+
+### GitHub Pages (текущая схема проекта)
+
+```bash
+npm run build:pages
+npm run deploy
+```
+
+Скрипт `deploy` отправляет сборку в отдельный репозиторий:
+`https://github.com/4ertopolohh/image-editor-view`
+
+### Обычный деплой (без Pages)
+
+Для стандартного хостинга достаточно:
+
+```bash
+npm run build
+```
+
+и публикации содержимого директории `dist/`.
+
+## Структура проекта
+
+```text
+image-editor/
+  public/
+    favicon.ico
+    og-image.png
+    robots.txt
+    sitemap.xml
+  src/
+    components/
+    constants/
+    hooks/
+    styles/
+    types/
+    utils/
+    App.tsx
+    main.tsx
+  index.html
+  package.json
+  vite.config.ts
+```
+
+## Ограничения и особенности
+
+- Приложение работает как `CSR SPA` (без SSR).
+- Обработка изображений выполняется в браузере пользователя через `Canvas API`.
+- Для очень больших изображений действуют ограничения:
+  - размер файла до `25 MB`
+  - максимальная сторона до `8000 px`
+  - лимит общего количества пикселей
+- При первом запуске (если язык не сохранен) выполняется короткий IP geo lookup для выбора языка по умолчанию.
+
+## Контакты
+
+- Studio: **Nemida Studio**
+- Telegram: https://t.me/NemidaStudio
