@@ -22,6 +22,13 @@ export interface ExportCompressionSettings {
   maxDimension: number
 }
 
+export interface CornerRadii {
+  topLeft: number
+  topRight: number
+  bottomRight: number
+  bottomLeft: number
+}
+
 export interface LoadedImage {
   url: string
   name: string

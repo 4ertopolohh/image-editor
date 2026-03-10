@@ -16,15 +16,23 @@ import {
   EXPORT_MAX_DIMENSION_RANGE,
   EXPORT_TARGET_SIZE_RANGE,
 } from './constants/compression'
+import { CORNER_RADIUS_RANGE, DEFAULT_CORNER_RADII } from './constants/cornerRadii'
 import { CROP_PRESETS } from './constants/cropPresets'
 import { DEFAULT_EXPORT_FORMAT, DEFAULT_EXPORT_QUALITY, EXPORT_FORMAT_MAP, EXPORT_FORMATS } from './constants/exportFormats'
 import { FILE_INPUT_ACCEPT } from './constants/fileValidation'
 import { useClipboardImage } from './hooks/useClipboardImage'
 import { useLanguage } from './hooks/useLanguage'
 import { useObjectUrlRegistry } from './hooks/useObjectUrlRegistry'
-import type { CropPresetId, ExportCompressionSettings, ExportFormatId, LoadedImage, StatusTone } from './types/editor'
+import type {
+  CornerRadii,
+  CropPresetId,
+  ExportCompressionSettings,
+  ExportFormatId,
+  LoadedImage,
+  StatusTone,
+} from './types/editor'
 import type { TranslationDictionary } from './types/i18n'
-import { exportCroppedImage, exportImageFromUrl } from './utils/canvasExport'
+import { exportCroppedImage, exportImageFromUrl, exportRotatedImageFromUrl } from './utils/canvasExport'
 import { downloadBlob } from './utils/download'
 import { createExportFileName } from './utils/fileName'
 import { readImageDimensions, validateImageDimensions } from './utils/imageMeta'
@@ -41,6 +49,8 @@ type StatusMessageKey =
   | 'image-uploaded'
   | 'image-pasted'
   | 'image-open-failed'
+  | 'image-rotated'
+  | 'rotate-failed'
   | 'crop-applied'
   | 'crop-failed'
   | 'original-restored'
@@ -85,6 +95,10 @@ const resolveStatusMessage = (message: StatusMessageState, dictionary: Translati
       return dictionary.status.imagePasted
     case 'image-open-failed':
       return dictionary.status.imageOpenFailed
+    case 'image-rotated':
+      return dictionary.status.imageRotated
+    case 'rotate-failed':
+      return dictionary.status.rotateFailed
     case 'crop-applied':
       return dictionary.status.cropApplied
     case 'crop-failed':
@@ -121,9 +135,11 @@ function App() {
   const [compressionEnabled, setCompressionEnabled] = useState<boolean>(DEFAULT_EXPORT_COMPRESSION_ENABLED)
   const [compressionTargetSizeKb, setCompressionTargetSizeKb] = useState<number>(DEFAULT_EXPORT_TARGET_SIZE_KB)
   const [compressionMaxDimension, setCompressionMaxDimension] = useState<number>(DEFAULT_EXPORT_MAX_DIMENSION)
+  const [cornerRadii, setCornerRadii] = useState<CornerRadii>(DEFAULT_CORNER_RADII)
   const [message, setMessage] = useState<StatusMessageState>(INITIAL_MESSAGE)
   const [editorVersion, setEditorVersion] = useState<number>(0)
   const [isApplyingCrop, setIsApplyingCrop] = useState<boolean>(false)
+  const [isRotating, setIsRotating] = useState<boolean>(false)
   const [isExporting, setIsExporting] = useState<boolean>(false)
   const { createUrl, revokeUrl } = useObjectUrlRegistry()
 
@@ -155,13 +171,27 @@ function App() {
   const currentImageUrl = currentImage?.url ?? 'empty'
   const resolvedMessage = useMemo(() => resolveStatusMessage(message, dictionary), [message, dictionary])
   const hasImage = Boolean(currentImage)
+  const hasRoundedCorners = useMemo(() => {
+    return Object.values(cornerRadii).some((value) => value > CORNER_RADIUS_RANGE.min)
+  }, [cornerRadii])
   const canApplyCrop = Boolean(
-    hasImage && completedCrop && completedCrop.width > 1 && completedCrop.height > 1 && !isApplyingCrop && !isExporting,
+    hasImage &&
+      completedCrop &&
+      completedCrop.width > 1 &&
+      completedCrop.height > 1 &&
+      !isApplyingCrop &&
+      !isRotating &&
+      !isExporting,
   )
   const canResetToSource = Boolean(
-    currentImage && editorState.source && currentImage.url !== editorState.source.url && !isApplyingCrop && !isExporting,
+    currentImage &&
+      editorState.source &&
+      (currentImage.url !== editorState.source.url || hasRoundedCorners) &&
+      !isApplyingCrop &&
+      !isRotating &&
+      !isExporting,
   )
-  const canExport = Boolean(currentImage && !isApplyingCrop && !isExporting)
+  const canExport = Boolean(currentImage && !isApplyingCrop && !isRotating && !isExporting)
 
   const setNewSourceImage = useCallback(
     (nextImage: LoadedImage): void => {
@@ -198,6 +228,7 @@ function App() {
 
     setCompletedCrop(undefined)
     setCurrentImageElement(null)
+    setCornerRadii(DEFAULT_CORNER_RADII)
     setEditorVersion((version) => version + 1)
     setMessage({
       tone: 'info',
@@ -253,6 +284,7 @@ function App() {
 
         setCompletedCrop(undefined)
         setCurrentImageElement(null)
+        setCornerRadii(DEFAULT_CORNER_RADII)
         setEditorVersion((version) => version + 1)
         setMessage({
           tone: 'success',
@@ -339,6 +371,59 @@ function App() {
     }
   }, [completedCrop, createUrl, currentImage, currentImageElement, revokeUrl])
 
+  const onRotateRight = useCallback(async (): Promise<void> => {
+    if (!currentImage) {
+      return
+    }
+
+    setIsRotating(true)
+
+    try {
+      const rotatedResult = await exportRotatedImageFromUrl({
+        imageUrl: currentImage.url,
+        angle: 90,
+      })
+
+      const rotatedUrl = createUrl(rotatedResult.blob)
+
+      setEditorState((previousState) => {
+        if (!previousState.current) {
+          return previousState
+        }
+
+        if (previousState.current.url !== previousState.source?.url) {
+          revokeUrl(previousState.current.url)
+        }
+
+        return {
+          ...previousState,
+          current: {
+            url: rotatedUrl,
+            name: previousState.current.name,
+            width: rotatedResult.width,
+            height: rotatedResult.height,
+          },
+        }
+      })
+
+      setCompletedCrop(undefined)
+      setCurrentImageElement(null)
+      setEditorVersion((version) => version + 1)
+      setMessage({
+        tone: 'success',
+        key: 'image-rotated',
+      })
+    } catch (error) {
+      console.error(error)
+      setMessage({
+        tone: 'error',
+        key: 'rotate-failed',
+      })
+    } finally {
+      setIsRotating(false)
+    }
+  }, [createUrl, currentImage, revokeUrl])
+
   const onResetToSource = useCallback((): void => {
     setEditorState((previousState) => {
       if (!previousState.source || !previousState.current) {
@@ -356,6 +441,7 @@ function App() {
     })
 
     setCompletedCrop(undefined)
+    setCornerRadii(DEFAULT_CORNER_RADII)
     setEditorVersion((version) => version + 1)
     setMessage({
       tone: 'info',
@@ -377,6 +463,27 @@ function App() {
     setCompressionMaxDimension(
       clampNumber(Math.round(value), EXPORT_MAX_DIMENSION_RANGE.min, EXPORT_MAX_DIMENSION_RANGE.max),
     )
+  }, [])
+
+  const onCornerRadiusChange = useCallback((corner: keyof CornerRadii, value: number): void => {
+    const normalizedValue = clampNumber(Math.round(value), CORNER_RADIUS_RANGE.min, CORNER_RADIUS_RANGE.max)
+    setCornerRadii((previousValue) => {
+      if (previousValue[corner] === normalizedValue) {
+        return previousValue
+      }
+
+      return {
+        ...previousValue,
+        [corner]: normalizedValue,
+      }
+    })
+  }, [])
+
+  const onResetCornerRadii = useCallback((): void => {
+    setCornerRadii((previousValue) => {
+      const hasAnyValue = Object.values(previousValue).some((value) => value > CORNER_RADIUS_RANGE.min)
+      return hasAnyValue ? DEFAULT_CORNER_RADII : previousValue
+    })
   }, [])
 
   const onExportImage = useCallback(async (): Promise<void> => {
@@ -403,6 +510,7 @@ function App() {
         mimeType: selectedExportFormat.mimeType,
         quality,
         compression: compressionSettings,
+        cornerRadii,
       })
 
       const fileName = createExportFileName(currentImage.name, selectedExportFormat.extension)
@@ -425,6 +533,7 @@ function App() {
     compressionEnabled,
     compressionMaxDimension,
     compressionTargetSizeKb,
+    cornerRadii,
     currentImage,
     exportQuality,
     selectedExportFormat,
@@ -453,18 +562,25 @@ function App() {
               hasImage={hasImage}
               accept={FILE_INPUT_ACCEPT}
               copy={dictionary.uploadZone}
-              disabled={isApplyingCrop || isExporting}
+              disabled={isApplyingCrop || isRotating || isExporting}
             />
 
             <CropControls
               presets={localizedCropPresets}
               activePresetId={cropPresetId}
               disabled={!hasImage}
+              cornerControlsDisabled={!hasImage || isApplyingCrop || isRotating || isExporting}
+              rotateDisabled={!hasImage || isApplyingCrop || isRotating || isExporting}
               applyDisabled={!canApplyCrop}
               resetDisabled={!canResetToSource}
+              isRotating={isRotating}
               isApplying={isApplyingCrop}
+              cornerRadii={cornerRadii}
               copy={dictionary.cropControls}
               onPresetChange={setCropPresetId}
+              onCornerRadiusChange={onCornerRadiusChange}
+              onResetCornerRadii={onResetCornerRadii}
+              onRotateRight={() => void onRotateRight()}
               onApplyCrop={() => void onApplyCrop()}
               onResetToSource={onResetToSource}
             />
@@ -505,7 +621,7 @@ function App() {
               onCropComplete={setCompletedCrop}
               onImageReady={setCurrentImageElement}
             />
-            <PreviewPane image={editorState.current} copy={dictionary.previewPane} />
+            <PreviewPane image={editorState.current} cornerRadii={cornerRadii} copy={dictionary.previewPane} />
           </div>
         </div>
 

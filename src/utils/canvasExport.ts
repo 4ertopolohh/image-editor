@@ -1,6 +1,7 @@
 import type { PixelCrop } from 'react-image-crop'
 import { MIN_LOSSY_COMPRESSION_QUALITY } from '../constants/compression'
-import type { ExportCompressionSettings, ExportFormatId } from '../types/editor'
+import { CORNER_RADIUS_RANGE, DEFAULT_CORNER_RADII } from '../constants/cornerRadii'
+import type { CornerRadii, ExportCompressionSettings, ExportFormatId } from '../types/editor'
 
 const ICO_TARGET_SIZE = 256
 const QUALITY_SEARCH_STEPS = 7
@@ -14,6 +15,7 @@ interface CropExportOptions {
   formatId: ExportFormatId
   mimeType: string
   quality?: number
+  cornerRadii?: CornerRadii
 }
 
 interface UrlExportOptions {
@@ -22,6 +24,7 @@ interface UrlExportOptions {
   mimeType: string
   quality?: number
   compression?: ExportCompressionSettings
+  cornerRadii?: CornerRadii
 }
 
 export interface CanvasExportResult {
@@ -39,6 +42,151 @@ const createCanvas = (width: number, height: number): HTMLCanvasElement => {
   canvas.width = Math.max(1, Math.round(width))
   canvas.height = Math.max(1, Math.round(height))
   return canvas
+}
+
+interface CornerRadiusEllipse {
+  rx: number
+  ry: number
+}
+
+interface CornerRadiusPixels {
+  topLeft: CornerRadiusEllipse
+  topRight: CornerRadiusEllipse
+  bottomRight: CornerRadiusEllipse
+  bottomLeft: CornerRadiusEllipse
+}
+
+const normalizeCornerRadii = (cornerRadii?: CornerRadii): CornerRadii => {
+  return {
+    topLeft: clamp(
+      cornerRadii?.topLeft ?? DEFAULT_CORNER_RADII.topLeft,
+      CORNER_RADIUS_RANGE.min,
+      CORNER_RADIUS_RANGE.max,
+    ),
+    topRight: clamp(
+      cornerRadii?.topRight ?? DEFAULT_CORNER_RADII.topRight,
+      CORNER_RADIUS_RANGE.min,
+      CORNER_RADIUS_RANGE.max,
+    ),
+    bottomRight: clamp(
+      cornerRadii?.bottomRight ?? DEFAULT_CORNER_RADII.bottomRight,
+      CORNER_RADIUS_RANGE.min,
+      CORNER_RADIUS_RANGE.max,
+    ),
+    bottomLeft: clamp(
+      cornerRadii?.bottomLeft ?? DEFAULT_CORNER_RADII.bottomLeft,
+      CORNER_RADIUS_RANGE.min,
+      CORNER_RADIUS_RANGE.max,
+    ),
+  }
+}
+
+const hasRoundedCorners = (cornerRadii: CornerRadii): boolean => {
+  return Object.values(cornerRadii).some((value) => value > CORNER_RADIUS_RANGE.min)
+}
+
+const toCornerRadiusPixels = (width: number, height: number, cornerRadii: CornerRadii): CornerRadiusPixels => {
+  const toEllipse = (value: number): CornerRadiusEllipse => ({
+    rx: (value / 100) * width,
+    ry: (value / 100) * height,
+  })
+
+  return {
+    topLeft: toEllipse(cornerRadii.topLeft),
+    topRight: toEllipse(cornerRadii.topRight),
+    bottomRight: toEllipse(cornerRadii.bottomRight),
+    bottomLeft: toEllipse(cornerRadii.bottomLeft),
+  }
+}
+
+const buildRoundedRectPath = (
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  corners: CornerRadiusPixels,
+): void => {
+  context.beginPath()
+  context.moveTo(corners.topLeft.rx, 0)
+  context.lineTo(width - corners.topRight.rx, 0)
+
+  if (corners.topRight.rx > 0 && corners.topRight.ry > 0) {
+    context.ellipse(width - corners.topRight.rx, corners.topRight.ry, corners.topRight.rx, corners.topRight.ry, 0, -Math.PI / 2, 0)
+  } else {
+    context.lineTo(width, 0)
+  }
+
+  context.lineTo(width, height - corners.bottomRight.ry)
+
+  if (corners.bottomRight.rx > 0 && corners.bottomRight.ry > 0) {
+    context.ellipse(
+      width - corners.bottomRight.rx,
+      height - corners.bottomRight.ry,
+      corners.bottomRight.rx,
+      corners.bottomRight.ry,
+      0,
+      0,
+      Math.PI / 2,
+    )
+  } else {
+    context.lineTo(width, height)
+  }
+
+  context.lineTo(corners.bottomLeft.rx, height)
+
+  if (corners.bottomLeft.rx > 0 && corners.bottomLeft.ry > 0) {
+    context.ellipse(
+      corners.bottomLeft.rx,
+      height - corners.bottomLeft.ry,
+      corners.bottomLeft.rx,
+      corners.bottomLeft.ry,
+      0,
+      Math.PI / 2,
+      Math.PI,
+    )
+  } else {
+    context.lineTo(0, height)
+  }
+
+  context.lineTo(0, corners.topLeft.ry)
+
+  if (corners.topLeft.rx > 0 && corners.topLeft.ry > 0) {
+    context.ellipse(corners.topLeft.rx, corners.topLeft.ry, corners.topLeft.rx, corners.topLeft.ry, 0, Math.PI, Math.PI * 1.5)
+  } else {
+    context.lineTo(0, 0)
+  }
+
+  context.closePath()
+}
+
+const applyRoundedCornersMask = (
+  sourceCanvas: HTMLCanvasElement,
+  cornerRadii?: CornerRadii,
+  formatId?: ExportFormatId,
+): HTMLCanvasElement => {
+  const normalizedCornerRadii = normalizeCornerRadii(cornerRadii)
+
+  if (!hasRoundedCorners(normalizedCornerRadii)) {
+    return sourceCanvas
+  }
+
+  const maskedCanvas = createCanvas(sourceCanvas.width, sourceCanvas.height)
+  const context = maskedCanvas.getContext('2d')
+
+  if (!context) {
+    throw new Error('Unable to create 2D context for rounded corner export.')
+  }
+
+  if (formatId === 'jpg') {
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, maskedCanvas.width, maskedCanvas.height)
+  }
+
+  const corners = toCornerRadiusPixels(maskedCanvas.width, maskedCanvas.height, normalizedCornerRadii)
+  buildRoundedRectPath(context, maskedCanvas.width, maskedCanvas.height, corners)
+  context.clip()
+  context.drawImage(sourceCanvas, 0, 0)
+
+  return maskedCanvas
 }
 
 const drawCanvas = (
@@ -126,6 +274,47 @@ const loadImageFromUrl = async (imageUrl: string): Promise<HTMLImageElement> => 
   image.src = imageUrl
   await image.decode()
   return image
+}
+
+const normalizeQuarterTurnAngle = (angle: number): 0 | 90 | 180 | 270 => {
+  const normalizedTurns = ((Math.round(angle / 90) % 4) + 4) % 4
+
+  if (normalizedTurns === 1) {
+    return 90
+  }
+
+  if (normalizedTurns === 2) {
+    return 180
+  }
+
+  if (normalizedTurns === 3) {
+    return 270
+  }
+
+  return 0
+}
+
+const drawRotatedImageCanvas = (image: HTMLImageElement, angle: 0 | 90 | 180 | 270): HTMLCanvasElement => {
+  if (angle === 0) {
+    return drawCanvas(image, image.naturalWidth, image.naturalHeight, image.naturalWidth, image.naturalHeight)
+  }
+
+  const targetWidth = angle === 90 || angle === 270 ? image.naturalHeight : image.naturalWidth
+  const targetHeight = angle === 90 || angle === 270 ? image.naturalWidth : image.naturalHeight
+  const canvas = createCanvas(targetWidth, targetHeight)
+  const context = canvas.getContext('2d')
+
+  if (!context) {
+    throw new Error('Unable to create 2D context for image rotation.')
+  }
+
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'high'
+  context.translate(targetWidth / 2, targetHeight / 2)
+  context.rotate((angle * Math.PI) / 180)
+  context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2)
+
+  return canvas
 }
 
 const supportsQuality = (formatId: ExportFormatId): boolean => {
@@ -362,15 +551,19 @@ const exportCanvas = async ({
   mimeType,
   quality,
   compression,
+  cornerRadii,
 }: {
   canvas: HTMLCanvasElement
   formatId: ExportFormatId
   mimeType: string
   quality?: number
   compression?: ExportCompressionSettings
+  cornerRadii?: CornerRadii
 }): Promise<CanvasExportResult> => {
+  const canvasWithRoundedCorners = applyRoundedCornersMask(canvas, cornerRadii, formatId)
+
   if (formatId === 'ico') {
-    const blob = await buildIcoBlob(canvas)
+    const blob = await buildIcoBlob(canvasWithRoundedCorners)
     return {
       blob,
       width: ICO_TARGET_SIZE,
@@ -381,17 +574,17 @@ const exportCanvas = async ({
   const normalizedCompression = normalizeCompressionSettings(compression)
 
   if (!normalizedCompression) {
-    const blob = await encodeExportBlob(canvas, formatId, mimeType, quality)
+    const blob = await encodeExportBlob(canvasWithRoundedCorners, formatId, mimeType, quality)
     return {
       blob,
-      width: canvas.width,
-      height: canvas.height,
+      width: canvasWithRoundedCorners.width,
+      height: canvasWithRoundedCorners.height,
     }
   }
 
   const normalizedQuality = clamp(quality ?? 0.92, MIN_LOSSY_COMPRESSION_QUALITY, 1)
   const targetBytes = normalizedCompression.targetSizeKb * 1024
-  const dimensionLimitedCanvas = resizeToMaxDimension(canvas, normalizedCompression.maxDimension)
+  const dimensionLimitedCanvas = resizeToMaxDimension(canvasWithRoundedCorners, normalizedCompression.maxDimension)
 
   const compressed = await optimizeCanvasForTargetSize({
     canvas: dimensionLimitedCanvas,
@@ -415,6 +608,7 @@ export const exportCroppedImage = async ({
   formatId,
   mimeType,
   quality,
+  cornerRadii,
 }: CropExportOptions): Promise<CanvasExportResult> => {
   if (crop.width < 1 || crop.height < 1) {
     throw new Error('Crop rectangle must be larger than 1px.')
@@ -444,7 +638,27 @@ export const exportCroppedImage = async ({
     formatId,
     mimeType,
     quality,
+    cornerRadii,
   })
+}
+
+export const exportRotatedImageFromUrl = async ({
+  imageUrl,
+  angle,
+}: {
+  imageUrl: string
+  angle: number
+}): Promise<CanvasExportResult> => {
+  const image = await loadImageFromUrl(imageUrl)
+  const normalizedAngle = normalizeQuarterTurnAngle(angle)
+  const canvas = drawRotatedImageCanvas(image, normalizedAngle)
+  const blob = await canvasToBlob(canvas, 'image/png')
+
+  return {
+    blob,
+    width: canvas.width,
+    height: canvas.height,
+  }
 }
 
 export const exportImageFromUrl = async ({
@@ -453,6 +667,7 @@ export const exportImageFromUrl = async ({
   mimeType,
   quality,
   compression,
+  cornerRadii,
 }: UrlExportOptions): Promise<CanvasExportResult> => {
   const image = await loadImageFromUrl(imageUrl)
   const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, image.naturalWidth, image.naturalHeight)
@@ -463,5 +678,6 @@ export const exportImageFromUrl = async ({
     mimeType,
     quality,
     compression,
+    cornerRadii,
   })
 }

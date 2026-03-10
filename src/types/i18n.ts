@@ -26,8 +26,21 @@ export interface TranslationDictionary {
   cropControls: {
     sectionAriaLabel: string
     title: string
+    rotateAriaLabel: string
+    rotatingAriaLabel: string
+    rotateIconTitle: string
     presetGroupAriaLabel: string
     aspectRatioAriaPrefix: string
+    cornersGroupAriaLabel: string
+    cornersTitle: string
+    cornersHint: string
+    cornerTopLeftLabel: string
+    cornerTopRightLabel: string
+    cornerBottomRightLabel: string
+    cornerBottomLeftLabel: string
+    cornerValueLabel: (value: number) => string
+    cornersResetButton: string
+    cornersResetAriaLabel: string
     applyButton: string
     applyingButton: string
     applyAriaLabel: string
@@ -80,6 +93,8 @@ export interface TranslationDictionary {
     imageUploaded: string
     imagePasted: string
     imageOpenFailed: string
+    imageRotated: string
+    rotateFailed: string
     cropApplied: string
     cropFailed: string
     originalRestored: string
