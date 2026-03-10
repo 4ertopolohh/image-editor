@@ -56,7 +56,7 @@ const CropControlsComponent = ({
   return (
     <section className={styles.panel} aria-label={copy.sectionAriaLabel}>
       <div className={styles.titleRow}>
-        <p className={styles.title}>{copy.title}</p>
+        <h2 className={styles.title}>{copy.title}</h2>
         <button
           type="button"
           className={styles.rotateButton}
@@ -98,7 +98,7 @@ const CropControlsComponent = ({
 
       <div className={styles.cornersSection} role="group" aria-label={copy.cornersGroupAriaLabel}>
         <div className={styles.cornersHeader}>
-          <p className={styles.cornersTitle}>{copy.cornersTitle}</p>
+          <h3 className={styles.cornersTitle}>{copy.cornersTitle}</h3>
           <button
             type="button"
             className={styles.cornersReset}

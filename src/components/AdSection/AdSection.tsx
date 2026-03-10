@@ -89,7 +89,7 @@ export const AdSection = ({ copy }: AdSectionProps) => {
       >
         <div className={styles.container}>
           <div className={styles.adSectionTitle}>
-            <h1>{copy.title}</h1>
+            <h2>{copy.title}</h2>
           </div>
 
           <div className={styles.adSectionDescription}>

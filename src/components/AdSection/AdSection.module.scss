@@ -65,7 +65,7 @@
             margin: 0 auto;
 
             .adSectionTitle {
-                h1 {
+                h2 {
                     max-width: 560px;
                     font-size: clamp(2.25rem, 6vw, 4rem);
                     line-height: 1.03;
@@ -118,7 +118,7 @@
                 gap: 20px;
 
                 .adSectionTitle {
-                    h1 {
+                    h2 {
                         max-width: 100%;
                     }
                 }
@@ -156,7 +156,7 @@
                 padding: 0 14px;
 
                 .adSectionTitle {
-                    h1 {
+                    h2 {
                         font-size: clamp(1.75rem, 10vw, 2.45rem);
                     }
                 }

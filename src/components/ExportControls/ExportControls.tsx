@@ -53,7 +53,7 @@ const ExportControlsComponent = ({
 
   return (
     <section className={styles.panel} aria-label={copy.sectionAriaLabel}>
-      <p className={styles.title}>{copy.title}</p>
+      <h2 className={styles.title}>{copy.title}</h2>
 
       <Select
         id="export-format"

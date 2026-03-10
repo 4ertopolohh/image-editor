@@ -23,6 +23,7 @@ import { FILE_INPUT_ACCEPT } from './constants/fileValidation'
 import { useClipboardImage } from './hooks/useClipboardImage'
 import { useLanguage } from './hooks/useLanguage'
 import { useObjectUrlRegistry } from './hooks/useObjectUrlRegistry'
+import { useSeoMetadata } from './hooks/useSeoMetadata'
 import type {
   CornerRadii,
   CropPresetId,
@@ -126,6 +127,8 @@ const resolveStatusMessage = (message: StatusMessageState, dictionary: Translati
 
 function App() {
   const { language, setLanguage, dictionary } = useLanguage()
+  useSeoMetadata(language)
+
   const [editorState, setEditorState] = useState<EditorState>({ source: null, current: null })
   const [cropPresetId, setCropPresetId] = useState<CropPresetId>('free')
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()

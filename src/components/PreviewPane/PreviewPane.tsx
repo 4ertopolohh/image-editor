@@ -15,7 +15,7 @@ const PreviewPaneComponent = ({ image, cornerRadii, copy }: PreviewPaneProps) =>
   return (
     <section className={styles.panel} aria-label={copy.sectionAriaLabel}>
       <div className={styles.header}>
-        <p className={styles.title}>{copy.title}</p>
+        <h2 className={styles.title}>{copy.title}</h2>
         {image ? (
           <span className={styles.meta}>
             {image.width}x{image.height}

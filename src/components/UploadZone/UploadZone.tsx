@@ -40,7 +40,7 @@ export const UploadZone = ({ onFileSelect, onClear, hasImage, accept, copy, disa
         aria-label={copy.inputAriaLabel}
       />
 
-      <p className={styles.title}>{copy.title}</p>
+      <h2 className={styles.title}>{copy.title}</h2>
       <p className={styles.description}>{copy.description}</p>
 
       <div className={styles.actions}>
