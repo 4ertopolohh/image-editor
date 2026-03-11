@@ -24,6 +24,11 @@ body {
     text-rendering: optimizeLegibility;
 }
 
+body.negative-cursor-active,
+body.negative-cursor-active * {
+    cursor: none !important;
+}
+
 h1,
 h2,
 h3,

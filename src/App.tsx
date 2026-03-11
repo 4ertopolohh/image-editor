@@ -8,6 +8,7 @@ import { ExportControls } from './components/ExportControls/ExportControls'
 import { Header } from './components/Header/Header'
 import { ImageEditor } from './components/ImageEditor/ImageEditor'
 import { Loader } from './components/Loader/Loader'
+import { NegativeCursor } from './components/NegativeCursor/NegativeCursor'
 import { PreviewPane } from './components/PreviewPane/PreviewPane'
 import { UploadZone } from './components/UploadZone/UploadZone'
 import { AdSection } from './components/AdSection/AdSection'
@@ -789,6 +790,7 @@ function App() {
         <AdSection copy={dictionary.adSection} />
 
         {isBusy ? <Loader /> : null}
+        <NegativeCursor />
       </div>
     </AppLayout>
   )
