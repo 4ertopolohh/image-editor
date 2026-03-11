@@ -1,0 +1,54 @@
+@use '../../styles/variables' as *;
+
+.panel {
+    @include glass-panel(true);
+    border-radius: $radius-lg;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.title {
+    margin: 0;
+    font-family: $font-heading;
+    font-size: 1.02rem;
+    letter-spacing: 0.03em;
+}
+
+.description {
+    color: $color-text-muted;
+    line-height: 1.4;
+    font-size: 0.9rem;
+}
+
+.autoToggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.autoCheckbox {
+    width: 16px;
+    height: 16px;
+    accent-color: $color-accent;
+}
+
+.autoLabel {
+    font-size: 0.86rem;
+    color: $color-text;
+    letter-spacing: 0.02em;
+}
+
+.autoCheckbox:disabled + .autoLabel {
+    color: $color-text-muted;
+}
+
+.hint {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+

@@ -158,11 +158,7 @@ const buildRoundedRectPath = (
   context.closePath()
 }
 
-const applyRoundedCornersMask = (
-  sourceCanvas: HTMLCanvasElement,
-  cornerRadii?: CornerRadii,
-  formatId?: ExportFormatId,
-): HTMLCanvasElement => {
+const applyRoundedCornersMask = (sourceCanvas: HTMLCanvasElement, cornerRadii?: CornerRadii): HTMLCanvasElement => {
   const normalizedCornerRadii = normalizeCornerRadii(cornerRadii)
 
   if (!hasRoundedCorners(normalizedCornerRadii)) {
@@ -174,11 +170,6 @@ const applyRoundedCornersMask = (
 
   if (!context) {
     throw new Error('Unable to create 2D context for rounded corner export.')
-  }
-
-  if (formatId === 'jpg') {
-    context.fillStyle = '#ffffff'
-    context.fillRect(0, 0, maskedCanvas.width, maskedCanvas.height)
   }
 
   const corners = toCornerRadiusPixels(maskedCanvas.width, maskedCanvas.height, normalizedCornerRadii)
@@ -243,6 +234,25 @@ const drawCoverToSquare = (source: HTMLCanvasElement, size: number): HTMLCanvasE
   context.drawImage(source, sourceX, sourceY, squareSize, squareSize, 0, 0, size, size)
 
   return target
+}
+
+const flattenCanvasForJpg = (sourceCanvas: HTMLCanvasElement, formatId: ExportFormatId): HTMLCanvasElement => {
+  if (formatId !== 'jpg') {
+    return sourceCanvas
+  }
+
+  const flattenedCanvas = createCanvas(sourceCanvas.width, sourceCanvas.height)
+  const context = flattenedCanvas.getContext('2d')
+
+  if (!context) {
+    throw new Error('Unable to create 2D context for JPG export.')
+  }
+
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, flattenedCanvas.width, flattenedCanvas.height)
+  context.drawImage(sourceCanvas, 0, 0)
+
+  return flattenedCanvas
 }
 
 const buildIcoBlob = async (sourceCanvas: HTMLCanvasElement): Promise<Blob> => {
@@ -560,10 +570,11 @@ const exportCanvas = async ({
   compression?: ExportCompressionSettings
   cornerRadii?: CornerRadii
 }): Promise<CanvasExportResult> => {
-  const canvasWithRoundedCorners = applyRoundedCornersMask(canvas, cornerRadii, formatId)
+  const canvasWithRoundedCorners = applyRoundedCornersMask(canvas, cornerRadii)
+  const preparedCanvas = flattenCanvasForJpg(canvasWithRoundedCorners, formatId)
 
   if (formatId === 'ico') {
-    const blob = await buildIcoBlob(canvasWithRoundedCorners)
+    const blob = await buildIcoBlob(preparedCanvas)
     return {
       blob,
       width: ICO_TARGET_SIZE,
@@ -574,17 +585,17 @@ const exportCanvas = async ({
   const normalizedCompression = normalizeCompressionSettings(compression)
 
   if (!normalizedCompression) {
-    const blob = await encodeExportBlob(canvasWithRoundedCorners, formatId, mimeType, quality)
+    const blob = await encodeExportBlob(preparedCanvas, formatId, mimeType, quality)
     return {
       blob,
-      width: canvasWithRoundedCorners.width,
-      height: canvasWithRoundedCorners.height,
+      width: preparedCanvas.width,
+      height: preparedCanvas.height,
     }
   }
 
   const normalizedQuality = clamp(quality ?? 0.92, MIN_LOSSY_COMPRESSION_QUALITY, 1)
   const targetBytes = normalizedCompression.targetSizeKb * 1024
-  const dimensionLimitedCanvas = resizeToMaxDimension(canvasWithRoundedCorners, normalizedCompression.maxDimension)
+  const dimensionLimitedCanvas = resizeToMaxDimension(preparedCanvas, normalizedCompression.maxDimension)
 
   const compressed = await optimizeCanvasForTargetSize({
     canvas: dimensionLimitedCanvas,

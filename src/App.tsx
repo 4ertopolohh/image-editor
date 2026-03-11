@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { PixelCrop } from 'react-image-crop'
 import styles from './App.module.scss'
 import { AppLayout } from './components/AppLayout/AppLayout'
+import { BackgroundRemovalControls } from './components/BackgroundRemovalControls/BackgroundRemovalControls'
 import { CropControls } from './components/CropControls/CropControls'
 import { ExportControls } from './components/ExportControls/ExportControls'
 import { Header } from './components/Header/Header'
@@ -34,6 +35,7 @@ import type {
   StatusTone,
 } from './types/editor'
 import type { TranslationDictionary } from './types/i18n'
+import { removeImageBackground } from './utils/backgroundRemoval'
 import { exportCroppedImage, exportImageFromUrl, exportRotatedImageFromUrl } from './utils/canvasExport'
 import { downloadBlob } from './utils/download'
 import { createExportFileName } from './utils/fileName'
@@ -51,6 +53,9 @@ type StatusMessageKey =
   | 'image-uploaded'
   | 'image-pasted'
   | 'image-open-failed'
+  | 'background-removal-started'
+  | 'background-removal-completed'
+  | 'background-removal-failed'
   | 'image-rotated'
   | 'rotate-failed'
   | 'crop-applied'
@@ -97,6 +102,12 @@ const resolveStatusMessage = (message: StatusMessageState, dictionary: Translati
       return dictionary.status.imagePasted
     case 'image-open-failed':
       return dictionary.status.imageOpenFailed
+    case 'background-removal-started':
+      return dictionary.status.backgroundRemovalStarted
+    case 'background-removal-completed':
+      return dictionary.status.backgroundRemovalCompleted
+    case 'background-removal-failed':
+      return dictionary.status.backgroundRemovalFailed
     case 'image-rotated':
       return dictionary.status.imageRotated
     case 'rotate-failed':
@@ -145,7 +156,11 @@ function App() {
   const [isApplyingCrop, setIsApplyingCrop] = useState<boolean>(false)
   const [isRotating, setIsRotating] = useState<boolean>(false)
   const [isExporting, setIsExporting] = useState<boolean>(false)
+  const [isRemovingBackground, setIsRemovingBackground] = useState<boolean>(false)
+  const [backgroundRemovalAutoEnabled, setBackgroundRemovalAutoEnabled] = useState<boolean>(true)
+  const [backgroundRemovalProgressPercent, setBackgroundRemovalProgressPercent] = useState<number | null>(null)
   const { createUrl, revokeUrl } = useObjectUrlRegistry()
+  const backgroundRemovalTaskRef = useRef<number>(0)
 
   const localizedCropPresets = useMemo(
     () =>
@@ -185,7 +200,8 @@ function App() {
       completedCrop.height > 1 &&
       !isApplyingCrop &&
       !isRotating &&
-      !isExporting,
+      !isExporting &&
+      !isRemovingBackground,
   )
   const canResetToSource = Boolean(
     currentImage &&
@@ -193,13 +209,26 @@ function App() {
       (currentImage.url !== editorState.source.url || hasRoundedCorners) &&
       !isApplyingCrop &&
       !isRotating &&
-      !isExporting,
+      !isExporting &&
+      !isRemovingBackground,
   )
-  const canExport = Boolean(currentImage && !isApplyingCrop && !isRotating && !isExporting)
-  const isBusy = isApplyingCrop || isRotating || isExporting
+  const canExport = Boolean(currentImage && !isApplyingCrop && !isRotating && !isExporting && !isRemovingBackground)
+  const isBusy = isApplyingCrop || isRotating || isExporting || isRemovingBackground
+
+  const invalidateBackgroundRemovalTask = useCallback((): void => {
+    backgroundRemovalTaskRef.current += 1
+    setIsRemovingBackground(false)
+    setBackgroundRemovalProgressPercent(null)
+  }, [])
+
+  const onBackgroundRemovalAutoEnabledChange = useCallback((value: boolean): void => {
+    setBackgroundRemovalAutoEnabled(value)
+  }, [])
 
   const setNewSourceImage = useCallback(
     (nextImage: LoadedImage): void => {
+      invalidateBackgroundRemovalTask()
+
       setEditorState((previousState) => {
         if (previousState.source) {
           revokeUrl(previousState.source.url)
@@ -215,10 +244,12 @@ function App() {
         }
       })
     },
-    [revokeUrl],
+    [invalidateBackgroundRemovalTask, revokeUrl],
   )
 
   const clearEditor = useCallback((): void => {
+    invalidateBackgroundRemovalTask()
+
     setEditorState((previousState) => {
       if (previousState.source) {
         revokeUrl(previousState.source.url)
@@ -239,7 +270,103 @@ function App() {
       tone: 'info',
       key: 'editor-cleared',
     })
-  }, [revokeUrl])
+  }, [invalidateBackgroundRemovalTask, revokeUrl])
+
+  const runBackgroundRemoval = useCallback(
+    async ({ targetUrl, targetName }: { targetUrl: string; targetName: string }): Promise<void> => {
+      const taskId = backgroundRemovalTaskRef.current + 1
+      backgroundRemovalTaskRef.current = taskId
+      setIsRemovingBackground(true)
+      setBackgroundRemovalProgressPercent(null)
+      setMessage({
+        tone: 'info',
+        key: 'background-removal-started',
+      })
+
+      try {
+        const sourceResponse = await fetch(targetUrl)
+        if (!sourceResponse.ok) {
+          throw new Error(`Failed to read source image from URL: ${sourceResponse.status}`)
+        }
+
+        const sourceBlob = await sourceResponse.blob()
+        const processedBlob = await removeImageBackground(sourceBlob, {
+          onProgress: ({ percent }) => {
+            if (backgroundRemovalTaskRef.current !== taskId) {
+              return
+            }
+
+            if (percent !== null) {
+              setBackgroundRemovalProgressPercent(percent)
+            }
+          },
+        })
+
+        if (backgroundRemovalTaskRef.current !== taskId) {
+          return
+        }
+
+        const dimensions = await readImageDimensions(processedBlob)
+        const processedUrl = createUrl(processedBlob)
+        let shouldDisposeProcessedUrl = false
+        let shouldFinalizeState = false
+
+        setEditorState((previousState) => {
+          if (!previousState.current || previousState.current.url !== targetUrl) {
+            shouldDisposeProcessedUrl = true
+            return previousState
+          }
+
+          if (previousState.current.url !== previousState.source?.url) {
+            revokeUrl(previousState.current.url)
+          }
+
+          shouldFinalizeState = true
+
+          return {
+            ...previousState,
+            current: {
+              url: processedUrl,
+              name: targetName,
+              width: dimensions.width,
+              height: dimensions.height,
+            },
+          }
+        })
+
+        if (shouldDisposeProcessedUrl) {
+          revokeUrl(processedUrl)
+          return
+        }
+
+        if (shouldFinalizeState) {
+          setCompletedCrop(undefined)
+          setCurrentImageElement(null)
+          setEditorVersion((version) => version + 1)
+          setMessage({
+            tone: 'success',
+            key: 'background-removal-completed',
+          })
+        }
+      } catch (error) {
+        if (backgroundRemovalTaskRef.current !== taskId) {
+          return
+        }
+
+        console.error(error)
+        setMessage({
+          tone: 'error',
+          key: 'background-removal-failed',
+        })
+      } finally {
+        if (backgroundRemovalTaskRef.current === taskId) {
+          setIsRemovingBackground(false)
+          setBackgroundRemovalProgressPercent(null)
+        }
+      }
+    },
+    [createUrl, revokeUrl],
+  )
 
   const ingestImageFile = useCallback(
     async (file: File, source: 'upload' | 'clipboard'): Promise<void> => {
@@ -295,6 +422,13 @@ function App() {
           tone: 'success',
           key: source === 'upload' ? 'image-uploaded' : 'image-pasted',
         })
+
+        if (backgroundRemovalAutoEnabled) {
+          void runBackgroundRemoval({
+            targetUrl: imageUrl,
+            targetName: name,
+          })
+        }
       } catch (error) {
         console.error(error)
         setMessage({
@@ -303,7 +437,7 @@ function App() {
         })
       }
     },
-    [createUrl, dictionary.common.clipboardFallbackFileName, setNewSourceImage],
+    [backgroundRemovalAutoEnabled, createUrl, dictionary.common.clipboardFallbackFileName, runBackgroundRemoval, setNewSourceImage],
   )
 
   const onFileSelect = useCallback(
@@ -320,7 +454,18 @@ function App() {
     [ingestImageFile],
   )
 
-  useClipboardImage({ onImagePaste: onClipboardImage })
+  const onRemoveBackground = useCallback((): void => {
+    if (!currentImage) {
+      return
+    }
+
+    void runBackgroundRemoval({
+      targetUrl: currentImage.url,
+      targetName: currentImage.name,
+    })
+  }, [currentImage, runBackgroundRemoval])
+
+  useClipboardImage({ onImagePaste: onClipboardImage, enabled: !isBusy })
 
   const onApplyCrop = useCallback(async (): Promise<void> => {
     if (!currentImage || !currentImageElement || !completedCrop) {
@@ -567,15 +712,26 @@ function App() {
               hasImage={hasImage}
               accept={FILE_INPUT_ACCEPT}
               copy={dictionary.uploadZone}
-              disabled={isApplyingCrop || isRotating || isExporting}
+              disabled={isBusy}
+            />
+
+            <BackgroundRemovalControls
+              hasImage={hasImage}
+              disabled={isBusy}
+              isRemoving={isRemovingBackground}
+              autoEnabled={backgroundRemovalAutoEnabled}
+              progressPercent={backgroundRemovalProgressPercent}
+              copy={dictionary.backgroundRemovalControls}
+              onAutoEnabledChange={onBackgroundRemovalAutoEnabledChange}
+              onRemoveBackground={onRemoveBackground}
             />
 
             <CropControls
               presets={localizedCropPresets}
               activePresetId={cropPresetId}
-              disabled={!hasImage}
-              cornerControlsDisabled={!hasImage || isApplyingCrop || isRotating || isExporting}
-              rotateDisabled={!hasImage || isApplyingCrop || isRotating || isExporting}
+              disabled={!hasImage || isBusy}
+              cornerControlsDisabled={!hasImage || isBusy}
+              rotateDisabled={!hasImage || isBusy}
               applyDisabled={!canApplyCrop}
               resetDisabled={!canResetToSource}
               isRotating={isRotating}

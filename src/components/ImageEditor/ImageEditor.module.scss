@@ -57,6 +57,13 @@
     max-height: min(62vh, 560px);
     object-fit: contain;
     width: auto;
+    background:
+        linear-gradient(45deg, rgba(116, 136, 181, 0.18) 25%, transparent 25%, transparent 75%, rgba(116, 136, 181, 0.18) 75%, rgba(116, 136, 181, 0.18)),
+        linear-gradient(45deg, rgba(116, 136, 181, 0.18) 25%, transparent 25%, transparent 75%, rgba(116, 136, 181, 0.18) 75%, rgba(116, 136, 181, 0.18));
+    background-position:
+        0 0,
+        8px 8px;
+    background-size: 16px 16px;
 }
 
 @media (max-width: $breakpoint-mobile) {

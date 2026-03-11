@@ -55,16 +55,28 @@
     gap: 8px;
 }
 
+.previewSurface {
+    display: flex;
+    justify-content: center;
+    border: 1px solid rgba(166, 185, 238, 0.2);
+    border-radius: $radius-md;
+    padding: 8px;
+    background:
+        linear-gradient(45deg, rgba(113, 131, 170, 0.2) 25%, transparent 25%, transparent 75%, rgba(113, 131, 170, 0.2) 75%, rgba(113, 131, 170, 0.2)),
+        linear-gradient(45deg, rgba(113, 131, 170, 0.2) 25%, transparent 25%, transparent 75%, rgba(113, 131, 170, 0.2) 75%, rgba(113, 131, 170, 0.2));
+    background-position:
+        0 0,
+        10px 10px;
+    background-size: 20px 20px;
+}
+
 .previewImage {
     display: block;
     align-self: center;
-    border: 1px solid rgba(166, 185, 238, 0.2);
-    border-radius: $radius-md;
     width: auto;
     height: auto;
     max-width: 100%;
     max-height: 290px;
-    background: rgba(7, 11, 19, 0.72);
     transition: border-radius $duration-normal $easing-standard;
 }
 

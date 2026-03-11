@@ -23,6 +23,18 @@ export interface TranslationDictionary {
     selectButton: string
     clearButton: string
   }
+  backgroundRemovalControls: {
+    sectionAriaLabel: string
+    title: string
+    description: string
+    autoToggleLabel: string
+    autoToggleAriaLabel: string
+    actionButton: string
+    processingButton: string
+    actionAriaLabel: string
+    hint: string
+    progressLabel: (value: number) => string
+  }
   cropControls: {
     sectionAriaLabel: string
     title: string
@@ -93,6 +105,9 @@ export interface TranslationDictionary {
     imageUploaded: string
     imagePasted: string
     imageOpenFailed: string
+    backgroundRemovalStarted: string
+    backgroundRemovalCompleted: string
+    backgroundRemovalFailed: string
     imageRotated: string
     rotateFailed: string
     cropApplied: string

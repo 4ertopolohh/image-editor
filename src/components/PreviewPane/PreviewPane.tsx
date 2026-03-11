@@ -30,7 +30,9 @@ const PreviewPaneComponent = ({ image, cornerRadii, copy }: PreviewPaneProps) =>
         </div>
       ) : (
         <div className={styles.previewFrame}>
-          <img src={image.url} alt={copy.imageAlt} className={styles.previewImage} style={{ borderRadius }} />
+          <div className={styles.previewSurface}>
+            <img src={image.url} alt={copy.imageAlt} className={styles.previewImage} style={{ borderRadius }} />
+          </div>
           <p className={styles.fileName} title={image.name}>
             {image.name}
           </p>
