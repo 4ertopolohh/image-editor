@@ -7,7 +7,7 @@ export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
       title: 'Фоторедактор',
       subtitle: 'Загрузите или вставьте изображение, обрежьте его и экспортируйте в PNG/JPG/WebP/ICO.',
       developedBy: 'Разработано',
-      studioName: 'Немида Студио',
+      studioName: 'Триад студио',
     },
     languageToggle: {
       ariaLabel: 'Переключение языка',
@@ -96,7 +96,7 @@ export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
       sectionAriaLabel: 'Рекламный блок Nemida Studio',
       title: 'сайт - старт успеха',
       subtitle:
-        'Хотите, чтобы ваш бизнес вышел на новый уровень? Немида Студио создаст сайт, который станет мощным инструментом карьерного роста. Надёжная платформа, современный дизайн, продуманная структура и чистый код.',
+        'Хотите, чтобы ваш бизнес вышел на новый уровень? Триад студио создаст сайт, который станет мощным инструментом карьерного роста. Надёжная платформа, современный дизайн, продуманная структура и чистый код.',
       wantButton: 'ХОЧУ!',
       wantButtonAriaLabel: 'Перейти в Telegram Nemida Studio',
     },
@@ -148,7 +148,7 @@ export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
       title: 'Photo Editor',
       subtitle: 'Upload or paste an image, crop it, and export it as PNG/JPG/WebP/ICO.',
       developedBy: 'Developed by',
-      studioName: 'Nemida Studio',
+      studioName: 'Triad studio',
     },
     languageToggle: {
       ariaLabel: 'Language switcher',
@@ -237,7 +237,7 @@ export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
       sectionAriaLabel: 'Nemida Studio promo section',
       title: 'Web-\nsite is Suc-\ncess',
       subtitle:
-        'Want to take your business to the next level? Nemida Studio will build a website that becomes a strong growth tool. Reliable platform, modern design, thoughtful structure, and clean code.',
+        'Want to take your business to the next level? Triad Studio will build a website that becomes a strong growth tool. Reliable platform, modern design, thoughtful structure, and clean code.',
       wantButton: 'I WANT IT!',
       wantButtonAriaLabel: 'Open Nemida Studio in Telegram',
     },
