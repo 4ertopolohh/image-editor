@@ -151,5 +151,5 @@ image-editor/
 
 ## Контакты
 
-- Studio: **Nemida Studio**
-- Telegram: https://t.me/NemidaStudio
+- Studio: **Triad Studio**
+- Telegram: https://t.me/TriadStudio
