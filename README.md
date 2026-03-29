@@ -1,4 +1,4 @@
-﻿# Nemida Studio Image Editor
+﻿# Triad Studio Image Editor
 
 [![React 19](https://img.shields.io/badge/React-19-20232a?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
