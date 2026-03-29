@@ -9,7 +9,7 @@ const DevelopedTitle = ({ developedBy, studioName }: DevelopedTitleProps) => {
   return (
     <p className={styles.developedTitle}>
       {developedBy}{' '}
-      <a href="" target="_blank" rel="noreferrer noopener">
+      <a href="https://t.me/T3riadStudio" target="_blank" rel="noreferrer noopener">
         {studioName}
       </a>
     </p>
