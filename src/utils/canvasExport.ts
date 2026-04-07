@@ -1,13 +1,20 @@
 import type { PixelCrop } from 'react-image-crop'
-import { MIN_LOSSY_COMPRESSION_QUALITY } from '../constants/compression'
+import { COMPRESSION_PROFILE_MAP } from '../constants/compression'
+import { ALPHA_CAPABLE_FORMATS, EXPORT_FORMAT_MAP, LOSSY_IMAGE_FORMATS } from '../constants/exportFormats'
 import { CORNER_RADIUS_RANGE, DEFAULT_CORNER_RADII } from '../constants/cornerRadii'
-import type { CornerRadii, ExportCompressionSettings, ExportFormatId } from '../types/editor'
+import type {
+  CompressionAttempt,
+  CompressionMode,
+  CompressionResult,
+  ConvertOptions,
+  CornerRadii,
+  ExportFormatId,
+  ImageAssetMeta,
+} from '../types/editor'
+import { analyzeImageBlob, analyzeImageFile, normalizeToExportFormat, resolveConvertQuality } from './imageAsset'
 
 const ICO_TARGET_SIZE = 256
-const QUALITY_SEARCH_STEPS = 7
-const RESIZE_SEARCH_STEPS = 7
-const SCALE_SAFETY_FACTOR = 0.97
-const MIN_EXPORT_SIDE = 64
+const MIN_PROGRESSIVE_SIDE = 64
 
 interface CropExportOptions {
   image: HTMLImageElement
@@ -16,6 +23,7 @@ interface CropExportOptions {
   mimeType: string
   quality?: number
   cornerRadii?: CornerRadii
+  backgroundFill?: string | null
 }
 
 interface UrlExportOptions {
@@ -23,8 +31,13 @@ interface UrlExportOptions {
   formatId: ExportFormatId
   mimeType: string
   quality?: number
-  compression?: ExportCompressionSettings
   cornerRadii?: CornerRadii
+  backgroundFill?: string | null
+}
+
+interface ConvertResult {
+  blob: Blob
+  meta: ImageAssetMeta
 }
 
 export interface CanvasExportResult {
@@ -44,6 +57,45 @@ const createCanvas = (width: number, height: number): HTMLCanvasElement => {
   return canvas
 }
 
+const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: string, quality?: number): Promise<Blob> => {
+  const normalizedQuality = mimeType === 'image/jpeg' || mimeType === 'image/webp' ? quality : undefined
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Canvas export returned empty blob.'))
+          return
+        }
+
+        resolve(blob)
+      },
+      mimeType,
+      normalizedQuality,
+    )
+  })
+}
+
+const loadImageFromUrl = async (imageUrl: string): Promise<HTMLImageElement> => {
+  const image = new Image()
+  image.src = imageUrl
+  await image.decode()
+  return image
+}
+
+const loadImageFromBlob = async (blob: Blob): Promise<HTMLImageElement> => {
+  const image = new Image()
+  const objectUrl = URL.createObjectURL(blob)
+  image.src = objectUrl
+
+  try {
+    await image.decode()
+    return image
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
 interface CornerRadiusEllipse {
   rx: number
   ry: number
@@ -58,26 +110,14 @@ interface CornerRadiusPixels {
 
 const normalizeCornerRadii = (cornerRadii?: CornerRadii): CornerRadii => {
   return {
-    topLeft: clamp(
-      cornerRadii?.topLeft ?? DEFAULT_CORNER_RADII.topLeft,
-      CORNER_RADIUS_RANGE.min,
-      CORNER_RADIUS_RANGE.max,
-    ),
-    topRight: clamp(
-      cornerRadii?.topRight ?? DEFAULT_CORNER_RADII.topRight,
-      CORNER_RADIUS_RANGE.min,
-      CORNER_RADIUS_RANGE.max,
-    ),
+    topLeft: clamp(cornerRadii?.topLeft ?? DEFAULT_CORNER_RADII.topLeft, CORNER_RADIUS_RANGE.min, CORNER_RADIUS_RANGE.max),
+    topRight: clamp(cornerRadii?.topRight ?? DEFAULT_CORNER_RADII.topRight, CORNER_RADIUS_RANGE.min, CORNER_RADIUS_RANGE.max),
     bottomRight: clamp(
       cornerRadii?.bottomRight ?? DEFAULT_CORNER_RADII.bottomRight,
       CORNER_RADIUS_RANGE.min,
       CORNER_RADIUS_RANGE.max,
     ),
-    bottomLeft: clamp(
-      cornerRadii?.bottomLeft ?? DEFAULT_CORNER_RADII.bottomLeft,
-      CORNER_RADIUS_RANGE.min,
-      CORNER_RADIUS_RANGE.max,
-    ),
+    bottomLeft: clamp(cornerRadii?.bottomLeft ?? DEFAULT_CORNER_RADII.bottomLeft, CORNER_RADIUS_RANGE.min, CORNER_RADIUS_RANGE.max),
   }
 }
 
@@ -134,15 +174,7 @@ const buildRoundedRectPath = (
   context.lineTo(corners.bottomLeft.rx, height)
 
   if (corners.bottomLeft.rx > 0 && corners.bottomLeft.ry > 0) {
-    context.ellipse(
-      corners.bottomLeft.rx,
-      height - corners.bottomLeft.ry,
-      corners.bottomLeft.rx,
-      corners.bottomLeft.ry,
-      0,
-      Math.PI / 2,
-      Math.PI,
-    )
+    context.ellipse(corners.bottomLeft.rx, height - corners.bottomLeft.ry, corners.bottomLeft.rx, corners.bottomLeft.ry, 0, Math.PI / 2, Math.PI)
   } else {
     context.lineTo(0, height)
   }
@@ -172,8 +204,7 @@ const applyRoundedCornersMask = (sourceCanvas: HTMLCanvasElement, cornerRadii?: 
     throw new Error('Unable to create 2D context for rounded corner export.')
   }
 
-  const corners = toCornerRadiusPixels(maskedCanvas.width, maskedCanvas.height, normalizedCornerRadii)
-  buildRoundedRectPath(context, maskedCanvas.width, maskedCanvas.height, corners)
+  buildRoundedRectPath(context, maskedCanvas.width, maskedCanvas.height, toCornerRadiusPixels(maskedCanvas.width, maskedCanvas.height, normalizedCornerRadii))
   context.clip()
   context.drawImage(sourceCanvas, 0, 0)
 
@@ -201,20 +232,20 @@ const drawCanvas = (
   return canvas
 }
 
-const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: string, quality?: number): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          reject(new Error('Canvas export returned empty blob.'))
-          return
-        }
-        resolve(blob)
-      },
-      mimeType,
-      quality,
-    )
-  })
+const progressiveResize = (sourceCanvas: HTMLCanvasElement, targetWidth: number, targetHeight: number): HTMLCanvasElement => {
+  let workingCanvas = sourceCanvas
+
+  while (workingCanvas.width / 2 > targetWidth && workingCanvas.height / 2 > targetHeight) {
+    const nextWidth = Math.max(targetWidth, Math.round(workingCanvas.width / 2))
+    const nextHeight = Math.max(targetHeight, Math.round(workingCanvas.height / 2))
+    workingCanvas = drawCanvas(workingCanvas, workingCanvas.width, workingCanvas.height, nextWidth, nextHeight)
+  }
+
+  if (workingCanvas.width !== targetWidth || workingCanvas.height !== targetHeight) {
+    workingCanvas = drawCanvas(workingCanvas, workingCanvas.width, workingCanvas.height, targetWidth, targetHeight)
+  }
+
+  return workingCanvas
 }
 
 const drawCoverToSquare = (source: HTMLCanvasElement, size: number): HTMLCanvasElement => {
@@ -234,25 +265,6 @@ const drawCoverToSquare = (source: HTMLCanvasElement, size: number): HTMLCanvasE
   context.drawImage(source, sourceX, sourceY, squareSize, squareSize, 0, 0, size, size)
 
   return target
-}
-
-const flattenCanvasForJpg = (sourceCanvas: HTMLCanvasElement, formatId: ExportFormatId): HTMLCanvasElement => {
-  if (formatId !== 'jpg') {
-    return sourceCanvas
-  }
-
-  const flattenedCanvas = createCanvas(sourceCanvas.width, sourceCanvas.height)
-  const context = flattenedCanvas.getContext('2d')
-
-  if (!context) {
-    throw new Error('Unable to create 2D context for JPG export.')
-  }
-
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, flattenedCanvas.width, flattenedCanvas.height)
-  context.drawImage(sourceCanvas, 0, 0)
-
-  return flattenedCanvas
 }
 
 const buildIcoBlob = async (sourceCanvas: HTMLCanvasElement): Promise<Blob> => {
@@ -279,11 +291,75 @@ const buildIcoBlob = async (sourceCanvas: HTMLCanvasElement): Promise<Blob> => {
   return new Blob([buffer, pngBuffer], { type: 'image/x-icon' })
 }
 
-const loadImageFromUrl = async (imageUrl: string): Promise<HTMLImageElement> => {
-  const image = new Image()
-  image.src = imageUrl
-  await image.decode()
-  return image
+const flattenCanvasForJpg = (
+  sourceCanvas: HTMLCanvasElement,
+  formatId: ExportFormatId,
+  backgroundFill?: string | null,
+): HTMLCanvasElement => {
+  if (formatId !== 'jpg') {
+    return sourceCanvas
+  }
+
+  const flattenedCanvas = createCanvas(sourceCanvas.width, sourceCanvas.height)
+  const context = flattenedCanvas.getContext('2d')
+
+  if (!context) {
+    throw new Error('Unable to create 2D context for JPG export.')
+  }
+
+  context.fillStyle = backgroundFill ?? '#ffffff'
+  context.fillRect(0, 0, flattenedCanvas.width, flattenedCanvas.height)
+  context.drawImage(sourceCanvas, 0, 0)
+
+  return flattenedCanvas
+}
+
+const encodeExportBlob = async (
+  canvas: HTMLCanvasElement,
+  formatId: ExportFormatId,
+  mimeType: string,
+  quality?: number,
+): Promise<Blob> => {
+  if (formatId === 'ico') {
+    return buildIcoBlob(canvas)
+  }
+
+  return canvasToBlob(canvas, mimeType, quality)
+}
+
+const exportCanvas = async ({
+  canvas,
+  formatId,
+  mimeType,
+  quality,
+  cornerRadii,
+  backgroundFill,
+}: {
+  canvas: HTMLCanvasElement
+  formatId: ExportFormatId
+  mimeType: string
+  quality?: number
+  cornerRadii?: CornerRadii
+  backgroundFill?: string | null
+}): Promise<CanvasExportResult> => {
+  const roundedCanvas = applyRoundedCornersMask(canvas, cornerRadii)
+  const preparedCanvas = flattenCanvasForJpg(roundedCanvas, formatId, backgroundFill)
+
+  if (formatId === 'ico') {
+    const blob = await buildIcoBlob(preparedCanvas)
+    return {
+      blob,
+      width: ICO_TARGET_SIZE,
+      height: ICO_TARGET_SIZE,
+    }
+  }
+
+  const blob = await encodeExportBlob(preparedCanvas, formatId, mimeType, quality)
+  return {
+    blob,
+    width: preparedCanvas.width,
+    height: preparedCanvas.height,
+  }
 }
 
 const normalizeQuarterTurnAngle = (angle: number): 0 | 90 | 180 | 270 => {
@@ -327,289 +403,239 @@ const drawRotatedImageCanvas = (image: HTMLImageElement, angle: 0 | 90 | 180 | 2
   return canvas
 }
 
-const supportsQuality = (formatId: ExportFormatId): boolean => {
-  return formatId === 'jpg' || formatId === 'webp'
-}
-
-const encodeExportBlob = async (
-  canvas: HTMLCanvasElement,
-  formatId: ExportFormatId,
-  mimeType: string,
-  quality?: number,
-): Promise<Blob> => {
-  if (formatId === 'ico') {
-    return buildIcoBlob(canvas)
-  }
-
-  return canvasToBlob(canvas, mimeType, quality)
-}
-
-const resizeToMaxDimension = (sourceCanvas: HTMLCanvasElement, maxDimension: number): HTMLCanvasElement => {
-  if (maxDimension < 1) {
-    return sourceCanvas
-  }
-
-  const largestSide = Math.max(sourceCanvas.width, sourceCanvas.height)
-
-  if (largestSide <= maxDimension) {
-    return sourceCanvas
-  }
-
-  const scale = maxDimension / largestSide
-  const nextWidth = Math.max(MIN_EXPORT_SIDE, Math.round(sourceCanvas.width * scale))
-  const nextHeight = Math.max(MIN_EXPORT_SIDE, Math.round(sourceCanvas.height * scale))
-
-  return drawCanvas(sourceCanvas, sourceCanvas.width, sourceCanvas.height, nextWidth, nextHeight)
-}
-
-interface LossySearchResult {
-  blob: Blob
-  quality: number
-  hitTarget: boolean
-}
-
-const findBestLossyBlob = async ({
-  canvas,
-  mimeType,
-  initialQuality,
-  minimumQuality,
-  targetBytes,
+const pickCompressionFormat = ({
+  meta,
+  mode,
 }: {
-  canvas: HTMLCanvasElement
-  mimeType: string
-  initialQuality: number
-  minimumQuality: number
-  targetBytes: number
-}): Promise<LossySearchResult> => {
-  const normalizedMinimumQuality = clamp(minimumQuality, 0.05, 1)
-  const normalizedInitialQuality = clamp(initialQuality, normalizedMinimumQuality, 1)
+  meta: ImageAssetMeta
+  mode: CompressionMode
+}): ExportFormatId => {
+  const originalExportFormat = normalizeToExportFormat(meta.format)
 
-  let smallestBlob = await canvasToBlob(canvas, mimeType, normalizedInitialQuality)
-  let smallestQuality = normalizedInitialQuality
-  let bestUnderTargetBlob: Blob | null = smallestBlob.size <= targetBytes ? smallestBlob : null
-  let bestUnderTargetQuality = normalizedInitialQuality
-  let low = normalizedMinimumQuality
-  let high = normalizedInitialQuality
-
-  for (let step = 0; step < QUALITY_SEARCH_STEPS; step += 1) {
-    const candidateQuality = clamp((low + high) / 2, normalizedMinimumQuality, normalizedInitialQuality)
-    const candidateBlob = await canvasToBlob(canvas, mimeType, candidateQuality)
-
-    if (candidateBlob.size < smallestBlob.size) {
-      smallestBlob = candidateBlob
-      smallestQuality = candidateQuality
+  if (meta.hasAlpha) {
+    if (mode === 'quality-first' && originalExportFormat && ALPHA_CAPABLE_FORMATS.has(originalExportFormat)) {
+      return originalExportFormat
     }
 
-    if (candidateBlob.size <= targetBytes) {
-      bestUnderTargetBlob = candidateBlob
-      bestUnderTargetQuality = candidateQuality
-      low = candidateQuality
-    } else {
-      high = candidateQuality
-    }
-
-    if (Math.abs(high - low) <= 0.005) {
-      break
-    }
+    return meta.format === 'webp' ? 'webp' : 'png'
   }
 
-  if (bestUnderTargetBlob) {
-    return {
-      blob: bestUnderTargetBlob,
-      quality: bestUnderTargetQuality,
-      hitTarget: true,
+  if (mode === 'quality-first') {
+    if (originalExportFormat && originalExportFormat !== 'ico') {
+      return originalExportFormat
     }
+
+    return meta.isPhotographic ? 'jpg' : 'png'
   }
 
-  return {
-    blob: smallestBlob,
-    quality: smallestQuality,
-    hitTarget: false,
+  if (meta.isPhotographic) {
+    return 'webp'
   }
+
+  if (mode === 'size-first' && (meta.format === 'jpg' || meta.format === 'jpeg' || meta.format === 'webp')) {
+    return 'webp'
+  }
+
+  return originalExportFormat && originalExportFormat !== 'ico' ? originalExportFormat : 'png'
 }
 
-interface CompressionCandidate {
-  blob: Blob
-  width: number
-  height: number
+const resolveCompressionMaxSide = (meta: ImageAssetMeta, mode: CompressionMode): number => {
+  const profile = COMPRESSION_PROFILE_MAP[mode]
+
+  if (meta.megapixels >= profile.maxDimensionStrategy.extremeMegapixels) {
+    return profile.maxDimensionStrategy.extreme
+  }
+
+  if (meta.megapixels >= profile.maxDimensionStrategy.oversizedMegapixels) {
+    return profile.maxDimensionStrategy.oversized
+  }
+
+  return profile.maxDimensionStrategy.normal
 }
 
-const optimizeCanvasForTargetSize = async ({
+const maybeResizeCanvas = (canvas: HTMLCanvasElement, maxSide: number): HTMLCanvasElement => {
+  const largestSide = Math.max(canvas.width, canvas.height)
+
+  if (largestSide <= maxSide) {
+    return canvas
+  }
+
+  const scale = maxSide / largestSide
+  const targetWidth = Math.max(MIN_PROGRESSIVE_SIDE, Math.round(canvas.width * scale))
+  const targetHeight = Math.max(MIN_PROGRESSIVE_SIDE, Math.round(canvas.height * scale))
+
+  return progressiveResize(canvas, targetWidth, targetHeight)
+}
+
+const makeAttempt = ({
+  format,
+  quality,
+  width,
+  height,
+  outputBytes,
+  accepted,
+  reason,
+}: CompressionAttempt): CompressionAttempt => ({
+  format,
+  quality,
+  width,
+  height,
+  outputBytes,
+  accepted,
+  reason,
+})
+
+const encodeCandidateBlob = async ({
   canvas,
   formatId,
-  mimeType,
   quality,
-  targetBytes,
-  minimumQuality,
+  backgroundFill,
 }: {
   canvas: HTMLCanvasElement
   formatId: ExportFormatId
-  mimeType: string
-  quality: number
-  targetBytes: number
-  minimumQuality: number
-}): Promise<CompressionCandidate> => {
-  const isLossy = supportsQuality(formatId)
-  let workingCanvas = canvas
-  let currentCandidate: CompressionCandidate
+  quality?: number
+  backgroundFill?: string | null
+}): Promise<Blob> => {
+  const option = EXPORT_FORMAT_MAP[formatId]
+  const preparedCanvas = flattenCanvasForJpg(canvas, formatId, backgroundFill)
+  return encodeExportBlob(preparedCanvas, formatId, option.mimeType, quality)
+}
 
-  if (isLossy) {
-    const lossyResult = await findBestLossyBlob({
-      canvas: workingCanvas,
-      mimeType,
-      initialQuality: quality,
-      minimumQuality,
-      targetBytes,
-    })
+export const convertImageFile = async (file: File, options: ConvertOptions): Promise<ConvertResult> => {
+  const sourceImage = await loadImageFromBlob(file)
+  const targetFormatId = normalizeToExportFormat(options.targetFormat) ?? 'png'
+  const targetOption = EXPORT_FORMAT_MAP[targetFormatId]
+  const canvas = drawCanvas(
+    sourceImage,
+    sourceImage.naturalWidth,
+    sourceImage.naturalHeight,
+    sourceImage.naturalWidth,
+    sourceImage.naturalHeight,
+  )
+  const blob = await encodeCandidateBlob({
+    canvas,
+    formatId: targetFormatId,
+    quality: resolveConvertQuality(options),
+    backgroundFill: options.backgroundFill,
+  })
+  const outputMeta = await analyzeImageBlob(blob, file.name.replace(/\.[^/.]+$/, `.${targetOption.extension}`))
 
-    currentCandidate = {
-      blob: lossyResult.blob,
-      width: workingCanvas.width,
-      height: workingCanvas.height,
-    }
+  return {
+    blob,
+    meta: outputMeta,
+  }
+}
 
-    if (lossyResult.hitTarget) {
-      return currentCandidate
+export const compressImageFile = async (file: File, mode: CompressionMode): Promise<CompressionResult> => {
+  const inputMeta = await analyzeImageFile(file)
+  const sourceImage = await loadImageFromBlob(file)
+  const originalCanvas = drawCanvas(
+    sourceImage,
+    sourceImage.naturalWidth,
+    sourceImage.naturalHeight,
+    sourceImage.naturalWidth,
+    sourceImage.naturalHeight,
+  )
+  const targetFormat = pickCompressionFormat({ meta: inputMeta, mode })
+  const targetOption = EXPORT_FORMAT_MAP[targetFormat]
+  const maxSide = resolveCompressionMaxSide(inputMeta, mode)
+  const workingCanvas = maybeResizeCanvas(originalCanvas, maxSide)
+  const profile = COMPRESSION_PROFILE_MAP[mode]
+  const attempts: CompressionAttempt[] = []
+  const appliedSteps: string[] = []
+
+  if (workingCanvas.width !== originalCanvas.width || workingCanvas.height !== originalCanvas.height) {
+    appliedSteps.push(`resize:${workingCanvas.width}x${workingCanvas.height}`)
+  }
+
+  if (targetFormat !== normalizeToExportFormat(inputMeta.format)) {
+    appliedSteps.push(`format:${targetFormat}`)
+  }
+
+  const backgroundFill = targetFormat === 'jpg' ? '#ffffff' : null
+  let bestBlob: Blob | null = null
+  let bestQuality: number | undefined
+
+  if (LOSSY_IMAGE_FORMATS.has(targetFormat)) {
+    const candidates = profile.qualityRange.candidates.slice(0, profile.maxPasses)
+
+    for (const quality of candidates) {
+      const blob = await encodeCandidateBlob({
+        canvas: workingCanvas,
+        formatId: targetFormat,
+        quality,
+        backgroundFill,
+      })
+      const accepted = blob.size < file.size && (!bestBlob || blob.size < bestBlob.size)
+      attempts.push(
+        makeAttempt({
+          format: targetFormat,
+          quality,
+          width: workingCanvas.width,
+          height: workingCanvas.height,
+          outputBytes: blob.size,
+          accepted,
+          reason: accepted ? 'smaller' : blob.size >= file.size ? 'not-smaller' : 'bigger-than-best',
+        }),
+      )
+
+      if (accepted) {
+        bestBlob = blob
+        bestQuality = quality
+      }
     }
   } else {
-    const initialBlob = await encodeExportBlob(workingCanvas, formatId, mimeType)
-    currentCandidate = {
-      blob: initialBlob,
-      width: workingCanvas.width,
-      height: workingCanvas.height,
-    }
+    const blob = await encodeCandidateBlob({
+      canvas: workingCanvas,
+      formatId: targetFormat,
+      backgroundFill,
+    })
+    const accepted = blob.size < file.size
+    attempts.push(
+      makeAttempt({
+        format: targetFormat,
+        width: workingCanvas.width,
+        height: workingCanvas.height,
+        outputBytes: blob.size,
+        accepted,
+        reason: accepted ? 'smaller' : 'not-smaller',
+      }),
+    )
 
-    if (initialBlob.size <= targetBytes) {
-      return currentCandidate
+    if (accepted) {
+      bestBlob = blob
     }
   }
 
-  let bestCandidate = currentCandidate
-
-  for (let step = 0; step < RESIZE_SEARCH_STEPS; step += 1) {
-    if (workingCanvas.width <= MIN_EXPORT_SIDE && workingCanvas.height <= MIN_EXPORT_SIDE) {
-      break
-    }
-
-    const ratio = Math.sqrt(targetBytes / currentCandidate.blob.size)
-    const scale = clamp(ratio * SCALE_SAFETY_FACTOR, 0.5, 0.95)
-    const nextWidth = Math.max(MIN_EXPORT_SIDE, Math.round(workingCanvas.width * scale))
-    const nextHeight = Math.max(MIN_EXPORT_SIDE, Math.round(workingCanvas.height * scale))
-
-    if (nextWidth === workingCanvas.width && nextHeight === workingCanvas.height) {
-      break
-    }
-
-    workingCanvas = drawCanvas(workingCanvas, workingCanvas.width, workingCanvas.height, nextWidth, nextHeight)
-
-    if (isLossy) {
-      const lossyResult = await findBestLossyBlob({
-        canvas: workingCanvas,
-        mimeType,
-        initialQuality: quality,
-        minimumQuality,
-        targetBytes,
-      })
-
-      currentCandidate = {
-        blob: lossyResult.blob,
-        width: workingCanvas.width,
-        height: workingCanvas.height,
-      }
-
-      if (currentCandidate.blob.size <= targetBytes) {
-        return currentCandidate
-      }
-    } else {
-      const resizedBlob = await encodeExportBlob(workingCanvas, formatId, mimeType)
-      currentCandidate = {
-        blob: resizedBlob,
-        width: workingCanvas.width,
-        height: workingCanvas.height,
-      }
-
-      if (resizedBlob.size <= targetBytes) {
-        return currentCandidate
-      }
-    }
-
-    if (currentCandidate.blob.size < bestCandidate.blob.size) {
-      bestCandidate = currentCandidate
-    }
+  const finalBlob = bestBlob ?? file
+  if (bestQuality !== undefined) {
+    appliedSteps.push(`quality:${Math.round(bestQuality * 100)}`)
   }
 
-  return bestCandidate
-}
+  const outputMeta = await analyzeImageBlob(finalBlob, file.name.replace(/\.[^/.]+$/, `.${targetOption.extension}`))
+  const savingsBytes = inputMeta.sizeBytes - finalBlob.size
+  const savingsRatio = inputMeta.sizeBytes > 0 ? savingsBytes / inputMeta.sizeBytes : 0
+  const warnings: string[] = []
 
-const normalizeCompressionSettings = (
-  compression?: ExportCompressionSettings,
-): ExportCompressionSettings | null => {
-  if (!compression || !compression.enabled) {
-    return null
+  if (!bestBlob) {
+    warnings.push('already-optimized')
+  } else if (savingsRatio < profile.minimalSavingsRatio) {
+    warnings.push('minimal-gain')
+  }
+
+  if (inputMeta.hasAlpha && targetFormat === 'png') {
+    warnings.push('alpha-preserved')
   }
 
   return {
-    enabled: true,
-    targetSizeKb: Math.max(1, Math.round(compression.targetSizeKb)),
-    maxDimension: Math.max(1, Math.round(compression.maxDimension)),
-  }
-}
-
-const exportCanvas = async ({
-  canvas,
-  formatId,
-  mimeType,
-  quality,
-  compression,
-  cornerRadii,
-}: {
-  canvas: HTMLCanvasElement
-  formatId: ExportFormatId
-  mimeType: string
-  quality?: number
-  compression?: ExportCompressionSettings
-  cornerRadii?: CornerRadii
-}): Promise<CanvasExportResult> => {
-  const canvasWithRoundedCorners = applyRoundedCornersMask(canvas, cornerRadii)
-  const preparedCanvas = flattenCanvasForJpg(canvasWithRoundedCorners, formatId)
-
-  if (formatId === 'ico') {
-    const blob = await buildIcoBlob(preparedCanvas)
-    return {
-      blob,
-      width: ICO_TARGET_SIZE,
-      height: ICO_TARGET_SIZE,
-    }
-  }
-
-  const normalizedCompression = normalizeCompressionSettings(compression)
-
-  if (!normalizedCompression) {
-    const blob = await encodeExportBlob(preparedCanvas, formatId, mimeType, quality)
-    return {
-      blob,
-      width: preparedCanvas.width,
-      height: preparedCanvas.height,
-    }
-  }
-
-  const normalizedQuality = clamp(quality ?? 0.92, MIN_LOSSY_COMPRESSION_QUALITY, 1)
-  const targetBytes = normalizedCompression.targetSizeKb * 1024
-  const dimensionLimitedCanvas = resizeToMaxDimension(preparedCanvas, normalizedCompression.maxDimension)
-
-  const compressed = await optimizeCanvasForTargetSize({
-    canvas: dimensionLimitedCanvas,
-    formatId,
-    mimeType,
-    quality: normalizedQuality,
-    targetBytes,
-    minimumQuality: MIN_LOSSY_COMPRESSION_QUALITY,
-  })
-
-  return {
-    blob: compressed.blob,
-    width: compressed.width,
-    height: compressed.height,
+    inputMeta,
+    outputMeta,
+    blob: finalBlob,
+    savingsBytes,
+    savingsRatio,
+    attempts,
+    warnings,
+    appliedSteps,
   }
 }
 
@@ -620,6 +646,7 @@ export const exportCroppedImage = async ({
   mimeType,
   quality,
   cornerRadii,
+  backgroundFill,
 }: CropExportOptions): Promise<CanvasExportResult> => {
   if (crop.width < 1 || crop.height < 1) {
     throw new Error('Crop rectangle must be larger than 1px.')
@@ -627,12 +654,10 @@ export const exportCroppedImage = async ({
 
   const scaleX = image.naturalWidth / image.width
   const scaleY = image.naturalHeight / image.height
-
   const cropX = clamp(Math.round(crop.x * scaleX), 0, image.naturalWidth - 1)
   const cropY = clamp(Math.round(crop.y * scaleY), 0, image.naturalHeight - 1)
   const cropWidth = clamp(Math.round(crop.width * scaleX), 1, image.naturalWidth - cropX)
   const cropHeight = clamp(Math.round(crop.height * scaleY), 1, image.naturalHeight - cropY)
-
   const canvas = createCanvas(cropWidth, cropHeight)
   const context = canvas.getContext('2d')
 
@@ -650,6 +675,7 @@ export const exportCroppedImage = async ({
     mimeType,
     quality,
     cornerRadii,
+    backgroundFill,
   })
 }
 
@@ -677,8 +703,8 @@ export const exportImageFromUrl = async ({
   formatId,
   mimeType,
   quality,
-  compression,
   cornerRadii,
+  backgroundFill,
 }: UrlExportOptions): Promise<CanvasExportResult> => {
   const image = await loadImageFromUrl(imageUrl)
   const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, image.naturalWidth, image.naturalHeight)
@@ -688,7 +714,7 @@ export const exportImageFromUrl = async ({
     formatId,
     mimeType,
     quality,
-    compression,
     cornerRadii,
+    backgroundFill,
   })
 }

@@ -1,7 +1,18 @@
-import type { ExportFormatId, ExportFormatOption } from '../types/editor'
+import type {
+  EditorExportFormatOption,
+  ExportFormatId,
+  ExportFormatOption,
+  SupportedImageFormat,
+} from '../types/editor'
 
 export const DEFAULT_EXPORT_FORMAT: ExportFormatId = 'png'
+export const DEFAULT_EDITOR_EXPORT_FORMAT = 'original'
 export const DEFAULT_EXPORT_QUALITY = 0.92
+export const DEFAULT_CONVERT_JPG_QUALITY = 0.92
+export const DEFAULT_CONVERT_WEBP_QUALITY = 0.9
+
+export const ALPHA_CAPABLE_FORMATS = new Set<SupportedImageFormat>(['png', 'webp', 'ico'])
+export const LOSSY_IMAGE_FORMATS = new Set<SupportedImageFormat>(['jpg', 'jpeg', 'webp'])
 
 export const EXPORT_FORMATS: ExportFormatOption[] = [
   {
@@ -34,6 +45,17 @@ export const EXPORT_FORMATS: ExportFormatOption[] = [
   },
 ]
 
+export const EDITOR_EXPORT_FORMATS: EditorExportFormatOption[] = [
+  {
+    id: 'original',
+    label: 'Original',
+    mimeType: '',
+    extension: '',
+    supportsQuality: false,
+  },
+  ...EXPORT_FORMATS,
+]
+
 export const EXPORT_FORMAT_MAP: Record<ExportFormatId, ExportFormatOption> = EXPORT_FORMATS.reduce(
   (accumulator, format) => {
     accumulator[format.id] = format
@@ -41,3 +63,7 @@ export const EXPORT_FORMAT_MAP: Record<ExportFormatId, ExportFormatOption> = EXP
   },
   {} as Record<ExportFormatId, ExportFormatOption>,
 )
+
+export const isExportFormatId = (value: string): value is ExportFormatId => {
+  return value === 'png' || value === 'jpg' || value === 'webp' || value === 'ico'
+}

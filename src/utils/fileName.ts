@@ -13,3 +13,12 @@ export const createExportFileName = (originalName: string, extension: string): s
   const baseName = sanitizeBaseName(originalName)
   return `${baseName}-edited.${extension}`
 }
+
+export const createDerivedFileName = (
+  originalName: string,
+  extension: string,
+  suffix: 'converted' | 'compressed',
+): string => {
+  const baseName = sanitizeBaseName(originalName)
+  return `${baseName}-${suffix}.${extension}`
+}

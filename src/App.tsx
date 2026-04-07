@@ -3,6 +3,8 @@ import type { PixelCrop } from 'react-image-crop'
 import styles from './App.module.scss'
 import { AppLayout } from './components/AppLayout/AppLayout'
 import { BackgroundRemovalControls } from './components/BackgroundRemovalControls/BackgroundRemovalControls'
+import { CompressionSection } from './components/CompressionSection/CompressionSection'
+import { ConvertSection } from './components/ConvertSection/ConvertSection'
 import { CropControls } from './components/CropControls/CropControls'
 import { ExportControls } from './components/ExportControls/ExportControls'
 import { Header } from './components/Header/Header'
@@ -12,16 +14,9 @@ import { NegativeCursor } from './components/NegativeCursor/NegativeCursor'
 import { PreviewPane } from './components/PreviewPane/PreviewPane'
 import { UploadZone } from './components/UploadZone/UploadZone'
 import { AdSection } from './components/AdSection/AdSection'
-import {
-  DEFAULT_EXPORT_COMPRESSION_ENABLED,
-  DEFAULT_EXPORT_MAX_DIMENSION,
-  DEFAULT_EXPORT_TARGET_SIZE_KB,
-  EXPORT_MAX_DIMENSION_RANGE,
-  EXPORT_TARGET_SIZE_RANGE,
-} from './constants/compression'
 import { CORNER_RADIUS_RANGE, DEFAULT_CORNER_RADII } from './constants/cornerRadii'
 import { CROP_PRESETS } from './constants/cropPresets'
-import { DEFAULT_EXPORT_FORMAT, DEFAULT_EXPORT_QUALITY, EXPORT_FORMAT_MAP, EXPORT_FORMATS } from './constants/exportFormats'
+import { DEFAULT_EDITOR_EXPORT_FORMAT, DEFAULT_EXPORT_QUALITY, EDITOR_EXPORT_FORMATS } from './constants/exportFormats'
 import { FILE_INPUT_ACCEPT } from './constants/fileValidation'
 import { useClipboardImage } from './hooks/useClipboardImage'
 import { useLanguage } from './hooks/useLanguage'
@@ -30,8 +25,9 @@ import { useSeoMetadata } from './hooks/useSeoMetadata'
 import type {
   CornerRadii,
   CropPresetId,
-  ExportCompressionSettings,
-  ExportFormatId,
+  EditorExportFormatId,
+  EditorExportFormatOption,
+  ImageAssetMeta,
   LoadedImage,
   StatusTone,
 } from './types/editor'
@@ -40,6 +36,7 @@ import { removeImageBackground } from './utils/backgroundRemoval'
 import { exportCroppedImage, exportImageFromUrl, exportRotatedImageFromUrl } from './utils/canvasExport'
 import { downloadBlob } from './utils/download'
 import { createExportFileName } from './utils/fileName'
+import { analyzeImageBlob, analyzeImageFile, getExportFormatOption, resolveEditorExportFormat, shouldWarnAboutJpgTransparency } from './utils/imageAsset'
 import { readImageDimensions, validateImageDimensions } from './utils/imageMeta'
 import { validateImageFile } from './utils/fileValidation'
 
@@ -143,14 +140,13 @@ function App() {
   useSeoMetadata(language)
 
   const [editorState, setEditorState] = useState<EditorState>({ source: null, current: null })
+  const [editorSourceMeta, setEditorSourceMeta] = useState<ImageAssetMeta | null>(null)
   const [cropPresetId, setCropPresetId] = useState<CropPresetId>('free')
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const [currentImageElement, setCurrentImageElement] = useState<HTMLImageElement | null>(null)
-  const [exportFormat, setExportFormat] = useState<ExportFormatId>(DEFAULT_EXPORT_FORMAT)
+  const [exportFormat, setExportFormat] = useState<EditorExportFormatId>(DEFAULT_EDITOR_EXPORT_FORMAT)
   const [exportQuality, setExportQuality] = useState<number>(DEFAULT_EXPORT_QUALITY)
-  const [compressionEnabled, setCompressionEnabled] = useState<boolean>(DEFAULT_EXPORT_COMPRESSION_ENABLED)
-  const [compressionTargetSizeKb, setCompressionTargetSizeKb] = useState<number>(DEFAULT_EXPORT_TARGET_SIZE_KB)
-  const [compressionMaxDimension, setCompressionMaxDimension] = useState<number>(DEFAULT_EXPORT_MAX_DIMENSION)
+  const [exportBackgroundFill, setExportBackgroundFill] = useState<string>('#ffffff')
   const [cornerRadii, setCornerRadii] = useState<CornerRadii>(DEFAULT_CORNER_RADII)
   const [message, setMessage] = useState<StatusMessageState>(INITIAL_MESSAGE)
   const [editorVersion, setEditorVersion] = useState<number>(0)
@@ -172,13 +168,26 @@ function App() {
     [dictionary.cropPresetLabels],
   )
 
-  const localizedExportFormats = useMemo(
+  const localizedExportFormats = useMemo<EditorExportFormatOption[]>(
     () =>
-      EXPORT_FORMATS.map((format) => ({
-        ...format,
-        label: dictionary.exportFormatLabels[format.id],
-      })),
-    [dictionary.exportFormatLabels],
+      EDITOR_EXPORT_FORMATS.map((format) => {
+        if (format.id === 'original') {
+          const originalLabel = editorSourceMeta?.format
+            ? dictionary.exportFormatLabels[editorSourceMeta.format === 'jpeg' ? 'jpg' : editorSourceMeta.format]
+            : dictionary.common.formatOriginalUnknown
+
+          return {
+            ...format,
+            label: dictionary.exportControls.originalFormatLabel(originalLabel),
+          }
+        }
+
+        return {
+          ...format,
+          label: dictionary.editorExportFormatLabels[format.id],
+        }
+      }),
+    [dictionary.common.formatOriginalUnknown, dictionary.editorExportFormatLabels, dictionary.exportControls, dictionary.exportFormatLabels, editorSourceMeta?.format],
   )
 
   const activePreset = useMemo(
@@ -186,11 +195,24 @@ function App() {
     [cropPresetId],
   )
 
-  const selectedExportFormat = useMemo(() => EXPORT_FORMAT_MAP[exportFormat], [exportFormat])
   const currentImage = editorState.current
   const currentImageUrl = currentImage?.url ?? 'empty'
   const resolvedMessage = useMemo(() => resolveStatusMessage(message, dictionary), [message, dictionary])
   const hasImage = Boolean(currentImage)
+  const resolvedEditorExportFormat = useMemo(
+    () =>
+      resolveEditorExportFormat({
+        sourceMeta: editorSourceMeta,
+        currentImageHasAlpha: currentImage?.hasAlpha ?? false,
+        outputFormat: exportFormat,
+      }),
+    [currentImage?.hasAlpha, editorSourceMeta, exportFormat],
+  )
+  const selectedExportFormat = useMemo(() => getExportFormatOption(resolvedEditorExportFormat), [resolvedEditorExportFormat])
+  const showExportTransparencyWarning = useMemo(
+    () => shouldWarnAboutJpgTransparency({ targetFormat: resolvedEditorExportFormat, hasAlpha: currentImage?.hasAlpha ?? false }),
+    [currentImage?.hasAlpha, resolvedEditorExportFormat],
+  )
   const hasRoundedCorners = useMemo(() => {
     return Object.values(cornerRadii).some((value) => value > CORNER_RADIUS_RANGE.min)
   }, [cornerRadii])
@@ -266,6 +288,8 @@ function App() {
     setCompletedCrop(undefined)
     setCurrentImageElement(null)
     setCornerRadii(DEFAULT_CORNER_RADII)
+    setEditorSourceMeta(null)
+    setExportFormat(DEFAULT_EDITOR_EXPORT_FORMAT)
     setEditorVersion((version) => version + 1)
     setMessage({
       tone: 'info',
@@ -308,6 +332,7 @@ function App() {
         }
 
         const dimensions = await readImageDimensions(processedBlob)
+        const processedMeta = await analyzeImageBlob(processedBlob, targetName)
         const processedUrl = createUrl(processedBlob)
         let shouldDisposeProcessedUrl = false
         let shouldFinalizeState = false
@@ -331,6 +356,9 @@ function App() {
               name: targetName,
               width: dimensions.width,
               height: dimensions.height,
+              hasAlpha: processedMeta.hasAlpha,
+              mimeType: processedMeta.mimeType,
+              format: processedMeta.format,
             },
           }
         })
@@ -404,6 +432,7 @@ function App() {
           return
         }
 
+        const meta = await analyzeImageFile(file)
         const imageUrl = createUrl(file)
         const name =
           file.name.trim().length > 0 ? file.name : dictionary.common.clipboardFallbackFileName
@@ -411,13 +440,18 @@ function App() {
         setNewSourceImage({
           url: imageUrl,
           name,
-          width: dimensions.width,
-          height: dimensions.height,
+          width: meta.width,
+          height: meta.height,
+          hasAlpha: meta.hasAlpha,
+          mimeType: meta.mimeType,
+          format: meta.format,
         })
+        setEditorSourceMeta(meta)
 
         setCompletedCrop(undefined)
         setCurrentImageElement(null)
         setCornerRadii(DEFAULT_CORNER_RADII)
+        setExportFormat(DEFAULT_EDITOR_EXPORT_FORMAT)
         setEditorVersion((version) => version + 1)
         setMessage({
           tone: 'success',
@@ -484,6 +518,7 @@ function App() {
       })
 
       const cropUrl = createUrl(cropResult.blob)
+      const cropMeta = await analyzeImageBlob(cropResult.blob, currentImage.name)
 
       setEditorState((previousState) => {
         if (!previousState.current) {
@@ -501,6 +536,9 @@ function App() {
             name: previousState.current.name,
             width: cropResult.width,
             height: cropResult.height,
+            hasAlpha: cropMeta.hasAlpha,
+            mimeType: cropMeta.mimeType,
+            format: cropMeta.format,
           },
         }
       })
@@ -536,6 +574,7 @@ function App() {
       })
 
       const rotatedUrl = createUrl(rotatedResult.blob)
+      const rotatedMeta = await analyzeImageBlob(rotatedResult.blob, currentImage.name)
 
       setEditorState((previousState) => {
         if (!previousState.current) {
@@ -553,6 +592,9 @@ function App() {
             name: previousState.current.name,
             width: rotatedResult.width,
             height: rotatedResult.height,
+            hasAlpha: rotatedMeta.hasAlpha,
+            mimeType: rotatedMeta.mimeType,
+            format: rotatedMeta.format,
           },
         }
       })
@@ -600,22 +642,6 @@ function App() {
     })
   }, [revokeUrl])
 
-  const onCompressionEnabledChange = useCallback((value: boolean): void => {
-    setCompressionEnabled(value)
-  }, [])
-
-  const onCompressionTargetSizeChange = useCallback((value: number): void => {
-    setCompressionTargetSizeKb(
-      clampNumber(Math.round(value), EXPORT_TARGET_SIZE_RANGE.min, EXPORT_TARGET_SIZE_RANGE.max),
-    )
-  }, [])
-
-  const onCompressionMaxDimensionChange = useCallback((value: number): void => {
-    setCompressionMaxDimension(
-      clampNumber(Math.round(value), EXPORT_MAX_DIMENSION_RANGE.min, EXPORT_MAX_DIMENSION_RANGE.max),
-    )
-  }, [])
-
   const onCornerRadiusChange = useCallback((corner: keyof CornerRadii, value: number): void => {
     const normalizedValue = clampNumber(Math.round(value), CORNER_RADIUS_RANGE.min, CORNER_RADIUS_RANGE.max)
     setCornerRadii((previousValue) => {
@@ -646,22 +672,14 @@ function App() {
 
     try {
       const quality = selectedExportFormat.supportsQuality ? exportQuality : undefined
-      const compressionSettings: ExportCompressionSettings | undefined =
-        compressionEnabled && selectedExportFormat.id !== 'ico'
-          ? {
-              enabled: true,
-              targetSizeKb: compressionTargetSizeKb,
-              maxDimension: compressionMaxDimension,
-            }
-          : undefined
 
       const result = await exportImageFromUrl({
         imageUrl: currentImage.url,
         formatId: selectedExportFormat.id,
         mimeType: selectedExportFormat.mimeType,
         quality,
-        compression: compressionSettings,
         cornerRadii,
+        backgroundFill: showExportTransparencyWarning ? exportBackgroundFill : null,
       })
 
       const fileName = createExportFileName(currentImage.name, selectedExportFormat.extension)
@@ -681,13 +699,12 @@ function App() {
       setIsExporting(false)
     }
   }, [
-    compressionEnabled,
-    compressionMaxDimension,
-    compressionTargetSizeKb,
     cornerRadii,
     currentImage,
+    exportBackgroundFill,
     exportQuality,
     selectedExportFormat,
+    showExportTransparencyWarning,
   ])
 
   const imageEditorKey = useMemo(
@@ -751,17 +768,15 @@ function App() {
               format={exportFormat}
               formatOptions={localizedExportFormats}
               quality={exportQuality}
-              compressionEnabled={compressionEnabled}
-              compressionTargetSizeKb={compressionTargetSizeKb}
-              compressionMaxDimension={compressionMaxDimension}
+              showQualityControl={selectedExportFormat.supportsQuality}
+              showTransparencyWarning={showExportTransparencyWarning}
+              backgroundFill={exportBackgroundFill}
               disabled={!canExport}
               isExporting={isExporting}
               copy={dictionary.exportControls}
               onFormatChange={setExportFormat}
               onQualityChange={setExportQuality}
-              onCompressionEnabledChange={onCompressionEnabledChange}
-              onCompressionTargetSizeChange={onCompressionTargetSizeChange}
-              onCompressionMaxDimensionChange={onCompressionMaxDimensionChange}
+              onBackgroundFillChange={setExportBackgroundFill}
               onExport={() => void onExportImage()}
             />
 
@@ -785,6 +800,19 @@ function App() {
             />
             <PreviewPane image={editorState.current} cornerRadii={cornerRadii} copy={dictionary.previewPane} />
           </div>
+        </div>
+
+        <div className={styles.toolGrid}>
+          <ConvertSection
+            copy={dictionary.convertSection}
+            commonCopy={dictionary.common}
+            exportFormatLabels={dictionary.exportFormatLabels}
+          />
+          <CompressionSection
+            copy={dictionary.compressionSection}
+            commonCopy={dictionary.common}
+            exportFormatLabels={dictionary.exportFormatLabels}
+          />
         </div>
 
         <AdSection copy={dictionary.adSection} />
