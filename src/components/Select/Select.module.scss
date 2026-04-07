@@ -22,7 +22,7 @@
     border-radius: $radius-sm;
     padding: 12px 42px 12px 12px;
     border: 1px solid $color-border;
-    background: rgba(31, 44, 68, 0.58);
+    background: #ffffff;
     color: $color-text;
     transition: $transition-interactive;
     -webkit-appearance: none;
@@ -30,7 +30,7 @@
 }
 
 .select:hover:not(:disabled) {
-    border-color: $color-border-strong;
+    border-color: $color-text;
 }
 
 .select:disabled {

@@ -13,6 +13,8 @@ const DEFAULT_SITE_ORIGIN = 'https://4ertopolohh.github.io'
 const SEO_META_ROBOTS = 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
 const SITE_NAME = 'Nemida Studio Image Editor'
 const SOCIAL_IMAGE_FILE_NAME = 'og-image.png'
+const FAVICON_FILE_NAME = 'favicon.ico'
+const LOGO_IMAGE_ASSET_URL = new URL('../assets/images/pictures/logo.png', import.meta.url).toString()
 const SOCIAL_IMAGE_TYPE = 'image/png'
 const SOCIAL_IMAGE_WIDTH = '1200'
 const SOCIAL_IMAGE_HEIGHT = '630'
@@ -84,6 +86,14 @@ const resolveSocialImageUrl = (canonicalUrl: string): string => {
   return new URL(SOCIAL_IMAGE_FILE_NAME, canonicalUrl).toString()
 }
 
+const resolveLogoImageUrl = (): string => {
+  return LOGO_IMAGE_ASSET_URL
+}
+
+const resolveFaviconUrl = (canonicalUrl: string): string => {
+  return new URL(FAVICON_FILE_NAME, canonicalUrl).toString()
+}
+
 const upsertCanonicalLink = (canonicalUrl: string): void => {
   const existingLink = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
   const linkTag = existingLink ?? document.createElement('link')
@@ -94,6 +104,19 @@ const upsertCanonicalLink = (canonicalUrl: string): void => {
   }
 
   linkTag.setAttribute('href', canonicalUrl)
+}
+
+const upsertHeadLink = (selector: string, attributes: Readonly<Record<string, string>>): void => {
+  const existingLink = document.head.querySelector<HTMLLinkElement>(selector)
+  const linkTag = existingLink ?? document.createElement('link')
+
+  Object.entries(attributes).forEach(([attributeName, attributeValue]) => {
+    linkTag.setAttribute(attributeName, attributeValue)
+  })
+
+  if (!existingLink) {
+    document.head.append(linkTag)
+  }
 }
 
 const upsertJsonLdScript = (id: string, payload: object): void => {
@@ -110,11 +133,17 @@ const upsertJsonLdScript = (id: string, payload: object): void => {
   scriptTag.textContent = JSON.stringify(payload)
 }
 
-const upsertStructuredData = (metadata: LocalizedSeoMetadata, canonicalUrl: string, socialImageUrl: string): void => {
+const upsertStructuredData = (
+  metadata: LocalizedSeoMetadata,
+  canonicalUrl: string,
+  socialImageUrl: string,
+  logoImageUrl: string,
+): void => {
   const organization = {
     '@type': 'Organization',
     name: 'Nemida Studio',
     url: 'https://t.me/NemidaStudio',
+    logo: logoImageUrl,
   }
 
   const webApplicationStructuredData = {
@@ -173,6 +202,8 @@ export const useSeoMetadata = (language: Language): void => {
     const metadata = SEO_METADATA[language]
     const canonicalUrl = resolveCanonicalUrl()
     const socialImageUrl = resolveSocialImageUrl(canonicalUrl)
+    const logoImageUrl = resolveLogoImageUrl()
+    const faviconUrl = resolveFaviconUrl(canonicalUrl)
 
     document.title = metadata.title
     document.documentElement.lang = language
@@ -198,8 +229,18 @@ export const useSeoMetadata = (language: Language): void => {
     upsertMetaTag('meta[name="twitter:description"]', { name: 'twitter:description' }, metadata.description)
     upsertMetaTag('meta[name="twitter:image"]', { name: 'twitter:image' }, socialImageUrl)
     upsertMetaTag('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt' }, metadata.ogImageAlt)
+    upsertMetaTag('meta[name="msapplication-TileImage"]', { name: 'msapplication-TileImage' }, faviconUrl)
+    upsertMetaTag('meta[itemprop="image"]', { itemprop: 'image' }, logoImageUrl)
+
+    upsertHeadLink('link[rel="icon"]', { rel: 'icon', href: faviconUrl, sizes: 'any', type: 'image/x-icon' })
+    upsertHeadLink('link[rel="shortcut icon"]', {
+      rel: 'shortcut icon',
+      href: faviconUrl,
+      type: 'image/x-icon',
+    })
+    upsertHeadLink('link[rel="apple-touch-icon"]', { rel: 'apple-touch-icon', href: faviconUrl })
 
     upsertCanonicalLink(canonicalUrl)
-    upsertStructuredData(metadata, canonicalUrl, socialImageUrl)
+    upsertStructuredData(metadata, canonicalUrl, socialImageUrl, logoImageUrl)
   }, [language])
 }

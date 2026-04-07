@@ -90,7 +90,7 @@ const CropControlsComponent = ({
               disabled={disabled}
               onClick={() => onPresetChange(preset.id)}
             >
-              {preset.label}
+              <span className={styles.blockSpan}>{preset.label}</span>
             </button>
           )
         })}
@@ -106,7 +106,7 @@ const CropControlsComponent = ({
             disabled={cornerControlsDisabled || !hasRoundedCorners}
             aria-label={copy.cornersResetAriaLabel}
           >
-            {copy.cornersResetButton}
+            <span className={styles.blockSpan}>{copy.cornersResetButton}</span>
           </button>
         </div>
 

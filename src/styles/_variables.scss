@@ -2,20 +2,20 @@ $font-body: 'Actay', 'Segoe UI', sans-serif;
 $font-heading: 'Actay Wide', 'Segoe UI', sans-serif;
 $font-accent: 'AKONY', 'Segoe UI', sans-serif;
 
-$color-bg-strong: #04060a;
-$color-bg-soft: #0b1220;
-$color-panel: rgba(11, 17, 27, 0.62);
-$color-panel-alt: rgba(18, 26, 40, 0.58);
-$color-border: rgba(204, 219, 255, 0.18);
-$color-border-strong: rgba(204, 219, 255, 0.32);
-$color-shadow: rgba(0, 0, 0, 0.38);
-$color-text: #e8edf8;
-$color-text-muted: #95a2bf;
-$color-success: #63d9a0;
-$color-danger: #ff8686;
-$color-info: #9fb4ff;
-$color-focus: #7d98ff;
-$color-accent: #8ca6ff;
+$color-bg-strong: #f2f2f2;
+$color-bg-soft: #f2f2f2;
+$color-panel: #fcfcfc;
+$color-panel-alt: #f8f8f8;
+$color-border: rgba(48, 48, 48, 0.12);
+$color-border-strong: rgba(48, 48, 48, 0.2);
+$color-shadow: rgba(48, 48, 48, 0.08);
+$color-text: #303030;
+$color-text-muted: #686868;
+$color-success: #70e9a4;
+$color-danger: #b25c5c;
+$color-info: #7497dc;
+$color-focus: #7497dc;
+$color-accent: #7497dc;
 
 $radius-sm: 12px;
 $radius-md: 18px;
@@ -25,8 +25,8 @@ $radius-pill: 999px;
 $max-layout-width: 1220px;
 
 $transition-style: 500ms ease;
-$duration-fast: 160ms;
-$duration-normal: 260ms;
+$duration-fast: 500ms;
+$duration-normal: 500ms;
 $easing-standard: cubic-bezier(0.2, 0.9, 0.22, 1);
 $transition-interactive:
     color $duration-normal $easing-standard,
@@ -47,9 +47,7 @@ $breakpoint-mobile: 720px;
     }
 
     border: 1px solid $color-border;
-    box-shadow: 0 22px 48px $color-shadow;
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
+    box-shadow: 0 12px 30px $color-shadow;
 }
 
 @mixin focus-ring {

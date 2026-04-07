@@ -9,7 +9,7 @@
 
 **Live Demo:** https://4ertopolohh.github.io/image-editor-view/
 
-![Preview](public/og-image.png)
+![Preview](public/logo.png)
 
 ## Содержание
 

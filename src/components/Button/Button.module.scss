@@ -10,8 +10,23 @@
     font-family: $font-body;
     font-weight: 600;
     line-height: 1;
-    transition: $transition-interactive;
+    transform: translateZ(0);
+    transform-origin: center;
+    backface-visibility: hidden;
+    will-change: transform, background-color;
+    transition:
+        transform 500ms ease,
+        background-color 500ms ease,
+        color 500ms ease,
+        border-color 500ms ease,
+        opacity 500ms ease;
     user-select: none;
+}
+
+.blockSpan {
+    line-height: 1;
+    padding-top: 3px;
+    display: inline-block;
 }
 
 .medium {
@@ -29,35 +44,32 @@
 }
 
 .primary {
-    background: linear-gradient(135deg, rgba(128, 159, 255, 0.92), rgba(92, 132, 255, 0.9));
-    color: #081021;
-    border-color: rgba(183, 201, 255, 0.42);
-    box-shadow: 0 14px 30px rgba(62, 98, 200, 0.35);
+    background: $color-accent;
+    color: #f2f2f2;
+    border-color: rgba(116, 151, 220, 0.3);
 }
 
 .secondary {
-    background: rgba(123, 150, 230, 0.16);
+    background: rgba(116, 151, 220, 0.14);
     color: $color-text;
     border-color: $color-border;
 }
 
 .ghost {
-    background: transparent;
-    color: $color-text-muted;
-    border-color: rgba(162, 177, 218, 0.22);
+    background: #ffffff;
+    color: $color-text;
+    border-color: $color-border;
 }
 
 .button:hover:not(:disabled) {
-    border-color: $color-border-strong;
-    transform: translateY(-1px);
-}
-
-.primary:hover:not(:disabled) {
-    box-shadow: 0 16px 34px rgba(72, 112, 223, 0.4);
+    background: $color-text;
+    border-color: $color-text;
+    color: #f2f2f2;
+    transform: scale(0.99);
 }
 
 .button:active:not(:disabled) {
-    transform: translateY(0);
+    transform: scale(0.99);
 }
 
 .button:disabled {

@@ -1,32 +1,43 @@
-﻿.wantButton {
-  background-color: #76a6ff;
+.wantButton {
+  background-color: #7497dc;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  transition: all 500ms ease;
-  border-radius: 15px;
-  border: none;
+  transform: translateZ(0);
+  transform-origin: center;
+  backface-visibility: hidden;
+  will-change: transform, background-color;
+  transition:
+    transform 500ms ease,
+    background-color 500ms ease,
+    color 500ms ease,
+    border-color 500ms ease;
+  border-radius: 25px;
+  border: 1px solid rgba(116, 151, 220, 0.3);
   margin: 0;
   padding: 0;
   -webkit-appearance: none;
   appearance: none;
-  color: #fff;
+  color: #f2f2f2;
   font-family: 'Actay', 'Segoe UI', sans-serif;
   text-decoration: none;
 
-  span {
+.blockSpan {
     font-size: 16px;
     font-family: 'Actay Wide', 'Segoe UI', sans-serif;
-    color: #000;
+    color: currentColor;
     height: 16px;
     margin: 0;
     padding: 0;
     line-height: 1;
+    padding-top: 3px;
+    display: inline-block;
   }
 
   &:hover {
     transform: scale(0.99);
-    background-color: #fff;
+    background-color: #303030;
+    border-color: #303030;
   }
 }

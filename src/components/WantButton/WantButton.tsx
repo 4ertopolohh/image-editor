@@ -16,7 +16,7 @@ export const WantButton = ({ width, height, label = 'ХОЧУ!', ariaLabel }: Wa
 
   return (
     <a href='https://t.me/T3riadStudio' className={styles.wantButton} style={wantButtonStyles} aria-label={ariaLabel}>
-      <span>{label}</span>
+      <span className={styles.blockSpan}>{label}</span>
     </a>
   )
 }

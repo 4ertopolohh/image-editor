@@ -39,9 +39,14 @@ const ButtonComponent = ({
   fullWidth = false,
   type = 'button',
   className,
+  children,
   ...restProps
 }: ButtonProps) => {
-  return <button type={type} className={buildClassName(variant, size, fullWidth, className)} {...restProps} />
+  return (
+    <button type={type} className={buildClassName(variant, size, fullWidth, className)} {...restProps}>
+      <span className={styles.blockSpan}>{children}</span>
+    </button>
+  )
 }
 
 export const Button = memo(ButtonComponent)

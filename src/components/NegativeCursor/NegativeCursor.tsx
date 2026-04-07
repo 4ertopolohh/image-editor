@@ -119,7 +119,7 @@ export const NegativeCursor = () => {
       const yOffset = (Math.random() - 0.5) * 12
       const dx = (Math.random() - 0.5) * 10
       const dy = -(4 + Math.random() * 12)
-      const duration = 420 + Math.random() * 220
+      const duration = 500
 
       particleNode.className = styles.particle
       particleNode.style.setProperty('--particle-size', `${size}px`)

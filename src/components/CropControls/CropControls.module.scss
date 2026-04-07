@@ -27,19 +27,30 @@
     width: 34px;
     height: 34px;
     border-radius: $radius-pill;
-    border: 1px solid rgba(170, 192, 248, 0.22);
-    background: rgba(80, 103, 156, 0.16);
-    color: $color-text-muted;
+    border: 1px solid $color-border;
+    background: #ffffff;
+    color: $color-text;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: $transition-interactive;
+    transform: translateZ(0);
+    transform-origin: center;
+    backface-visibility: hidden;
+    will-change: transform, background-color;
+    transition:
+        transform 500ms ease,
+        background-color 500ms ease,
+        color 500ms ease,
+        border-color 500ms ease,
+        opacity 500ms ease;
 }
 
 .rotateButton:hover:not(:disabled) {
-    color: $color-text;
-    border-color: $color-border-strong;
+    color: #f2f2f2;
+    background: $color-text;
+    border-color: $color-text;
+    transform: scale(0.99);
 }
 
 .rotateButton:focus-visible {
@@ -58,7 +69,7 @@
 }
 
 .rotateIconSpinning {
-    animation: rotateIconSpin 700ms linear infinite;
+    animation: rotateIconSpin 500ms linear infinite;
 }
 
 .presetGrid {
@@ -69,16 +80,27 @@
 
 .presetButton {
     border-radius: $radius-sm;
-    border: 1px solid rgba(170, 192, 248, 0.2);
-    background: rgba(80, 103, 156, 0.16);
-    color: $color-text-muted;
+    border: 1px solid $color-border;
+    background: #ffffff;
+    color: $color-text;
     min-height: 38px;
-    transition: $transition-interactive;
+    transform: translateZ(0);
+    transform-origin: center;
+    backface-visibility: hidden;
+    will-change: transform, background-color;
+    transition:
+        transform 500ms ease,
+        background-color 500ms ease,
+        color 500ms ease,
+        border-color 500ms ease,
+        opacity 500ms ease;
 }
 
 .presetButton:hover:not(:disabled) {
-    color: $color-text;
-    border-color: $color-border-strong;
+    color: #f2f2f2;
+    background: $color-text;
+    border-color: $color-text;
+    transform: scale(0.99);
 }
 
 .presetButton:disabled {
@@ -87,9 +109,14 @@
 }
 
 .presetButtonActive {
-    color: $color-text;
-    border-color: rgba(151, 177, 255, 0.62);
-    background: rgba(115, 143, 226, 0.28);
+    color: #f2f2f2;
+    border-color: $color-accent;
+    background: $color-accent;
+}
+
+.presetButtonActive:hover:not(:disabled) {
+    background: $color-text;
+    border-color: $color-text;
 }
 
 .actions {
@@ -121,20 +148,31 @@
 }
 
 .cornersReset {
-    border: 1px solid rgba(170, 192, 248, 0.22);
+    border: 1px solid $color-border;
     border-radius: $radius-pill;
-    background: rgba(80, 103, 156, 0.15);
-    color: $color-text-muted;
+    background: #ffffff;
+    color: $color-text;
     font-size: 0.75rem;
     line-height: 1;
     padding: 8px 10px;
     cursor: pointer;
-    transition: $transition-interactive;
+    transform: translateZ(0);
+    transform-origin: center;
+    backface-visibility: hidden;
+    will-change: transform, background-color;
+    transition:
+        transform 500ms ease,
+        background-color 500ms ease,
+        color 500ms ease,
+        border-color 500ms ease,
+        opacity 500ms ease;
 }
 
 .cornersReset:hover:not(:disabled) {
-    color: $color-text;
-    border-color: $color-border-strong;
+    color: #f2f2f2;
+    background: $color-text;
+    border-color: $color-text;
+    transform: scale(0.99);
 }
 
 .cornersReset:focus-visible {
@@ -156,6 +194,12 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.blockSpan {
+    line-height: 1;
+    padding-top: 3px;
+    display: inline-block;
 }
 
 .cornerLabel {
