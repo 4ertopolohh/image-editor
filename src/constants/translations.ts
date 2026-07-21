@@ -14,6 +14,9 @@ export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
       ruLabel: 'Русский',
       enLabel: 'Английский',
     },
+    footer: {
+      studioName: 'Триад Студио',
+    },
     uploadZone: {
       sectionAriaLabel: 'Загрузка изображения',
       inputAriaLabel: 'Выбрать файл изображения',
@@ -243,6 +246,9 @@ export const TRANSLATIONS: Record<'ru' | 'en', TranslationDictionary> = {
       ariaLabel: 'Language switcher',
       ruLabel: 'Russian',
       enLabel: 'English',
+    },
+    footer: {
+      studioName: 'Triad Studio',
     },
     uploadZone: {
       sectionAriaLabel: 'Image upload',

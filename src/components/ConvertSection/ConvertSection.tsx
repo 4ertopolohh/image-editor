@@ -15,6 +15,7 @@ import { validateImageFile } from '../../utils/fileValidation'
 
 interface ConvertSectionProps {
   copy: TranslationDictionary['convertSection']
+  validationCopy: TranslationDictionary['validation']
   commonCopy: TranslationDictionary['common']
   exportFormatLabels: TranslationDictionary['exportFormatLabels']
 }
@@ -27,7 +28,7 @@ const formatDimensions = (
   formatter: TranslationDictionary['common']['dimensionsLabel'],
 ): string => formatter(width, height)
 
-const ConvertSectionComponent = ({ copy, commonCopy, exportFormatLabels }: ConvertSectionProps) => {
+const ConvertSectionComponent = ({ copy, validationCopy, commonCopy, exportFormatLabels }: ConvertSectionProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [sourceMeta, setSourceMeta] = useState<ImageAssetMeta | null>(null)
@@ -74,11 +75,11 @@ const ConvertSectionComponent = ({ copy, commonCopy, exportFormatLabels }: Conve
     const fileValidation = validateImageFile(nextFile)
     if (!fileValidation.ok) {
       setError(
-        fileValidation.issue === 'file-too-large'
-          ? copy.errorGeneric
+        fileValidation.issue === 'not-image'
+          ? validationCopy.notImage
           : fileValidation.issue === 'unsupported-format'
-            ? copy.errorGeneric
-            : copy.errorGeneric,
+            ? validationCopy.unsupportedFormat
+            : validationCopy.fileTooLarge(fileValidation.maxSizeMb ?? 0),
       )
       return
     }
@@ -86,7 +87,11 @@ const ConvertSectionComponent = ({ copy, commonCopy, exportFormatLabels }: Conve
     const dimensions = await readImageDimensions(nextFile)
     const dimensionValidation = validateImageDimensions(dimensions)
     if (!dimensionValidation.ok) {
-      setError(copy.errorGeneric)
+      setError(
+        dimensionValidation.issue === 'dimension-too-large'
+          ? validationCopy.dimensionTooLarge(dimensionValidation.maxDimension ?? 0)
+          : validationCopy.pixelCountTooLarge,
+      )
       return
     }
 

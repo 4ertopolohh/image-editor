@@ -15,6 +15,7 @@ import { validateImageFile } from '../../utils/fileValidation'
 
 interface CompressionSectionProps {
   copy: TranslationDictionary['compressionSection']
+  validationCopy: TranslationDictionary['validation']
   commonCopy: TranslationDictionary['common']
   exportFormatLabels: TranslationDictionary['exportFormatLabels']
 }
@@ -27,7 +28,7 @@ const formatDimensions = (
   formatter: TranslationDictionary['common']['dimensionsLabel'],
 ): string => formatter(width, height)
 
-const CompressionSectionComponent = ({ copy, commonCopy, exportFormatLabels }: CompressionSectionProps) => {
+const CompressionSectionComponent = ({ copy, validationCopy, commonCopy, exportFormatLabels }: CompressionSectionProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [sourceMeta, setSourceMeta] = useState<ImageAssetMeta | null>(null)
@@ -69,14 +70,24 @@ const CompressionSectionComponent = ({ copy, commonCopy, exportFormatLabels }: C
   const handleFile = async (nextFile: File): Promise<void> => {
     const fileValidation = validateImageFile(nextFile)
     if (!fileValidation.ok) {
-      setError(copy.errorGeneric)
+      setError(
+        fileValidation.issue === 'not-image'
+          ? validationCopy.notImage
+          : fileValidation.issue === 'unsupported-format'
+            ? validationCopy.unsupportedFormat
+            : validationCopy.fileTooLarge(fileValidation.maxSizeMb ?? 0),
+      )
       return
     }
 
     const dimensions = await readImageDimensions(nextFile)
     const dimensionValidation = validateImageDimensions(dimensions)
     if (!dimensionValidation.ok) {
-      setError(copy.errorGeneric)
+      setError(
+        dimensionValidation.issue === 'dimension-too-large'
+          ? validationCopy.dimensionTooLarge(dimensionValidation.maxDimension ?? 0)
+          : validationCopy.pixelCountTooLarge,
+      )
       return
     }
 

@@ -18,6 +18,7 @@ import { CORNER_RADIUS_RANGE, DEFAULT_CORNER_RADII } from './constants/cornerRad
 import { CROP_PRESETS } from './constants/cropPresets'
 import { DEFAULT_EDITOR_EXPORT_FORMAT, DEFAULT_EXPORT_QUALITY, EDITOR_EXPORT_FORMATS } from './constants/exportFormats'
 import { FILE_INPUT_ACCEPT } from './constants/fileValidation'
+import { NEMIDA_STUDIO_LINKS } from './constants/studioLinks'
 import { useClipboardImage } from './hooks/useClipboardImage'
 import { useLanguage } from './hooks/useLanguage'
 import { useObjectUrlRegistry } from './hooks/useObjectUrlRegistry'
@@ -154,7 +155,7 @@ function App() {
   const [isRotating, setIsRotating] = useState<boolean>(false)
   const [isExporting, setIsExporting] = useState<boolean>(false)
   const [isRemovingBackground, setIsRemovingBackground] = useState<boolean>(false)
-  const [backgroundRemovalAutoEnabled, setBackgroundRemovalAutoEnabled] = useState<boolean>(true)
+  const [backgroundRemovalAutoEnabled, setBackgroundRemovalAutoEnabled] = useState<boolean>(false)
   const [backgroundRemovalProgressPercent, setBackgroundRemovalProgressPercent] = useState<number | null>(null)
   const { createUrl, revokeUrl } = useObjectUrlRegistry()
   const backgroundRemovalTaskRef = useRef<number>(0)
@@ -712,13 +713,16 @@ function App() {
     [cropPresetId, currentImageUrl, editorVersion, language],
   )
 
+  const studioHref = NEMIDA_STUDIO_LINKS[language]
+
   return (
-    <AppLayout>
+    <AppLayout copy={dictionary.footer} studioHref={studioHref}>
       <div className={styles.app}>
         <Header
           language={language}
           copy={dictionary.header}
           languageToggleCopy={dictionary.languageToggle}
+          studioHref={studioHref}
           onLanguageChange={setLanguage}
         />
 
@@ -805,11 +809,13 @@ function App() {
         <div className={styles.toolGrid}>
           <ConvertSection
             copy={dictionary.convertSection}
+            validationCopy={dictionary.validation}
             commonCopy={dictionary.common}
             exportFormatLabels={dictionary.exportFormatLabels}
           />
           <CompressionSection
             copy={dictionary.compressionSection}
+            validationCopy={dictionary.validation}
             commonCopy={dictionary.common}
             exportFormatLabels={dictionary.exportFormatLabels}
           />

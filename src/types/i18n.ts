@@ -15,6 +15,9 @@ export interface TranslationDictionary {
     ruLabel: string
     enLabel: string
   }
+  footer: {
+    studioName: string
+  }
   uploadZone: {
     sectionAriaLabel: string
     inputAriaLabel: string

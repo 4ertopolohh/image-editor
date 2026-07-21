@@ -1,7 +1,13 @@
 import type { PropsWithChildren } from 'react'
 import styles from './AppLayout.module.scss'
+import type { TranslationDictionary } from '../../types/i18n'
 
-export const AppLayout = ({ children }: PropsWithChildren) => {
+interface AppLayoutProps {
+  copy: TranslationDictionary['footer']
+  studioHref: string
+}
+
+export const AppLayout = ({ children, copy, studioHref }: PropsWithChildren<AppLayoutProps>) => {
   return (
     <div className={styles.page}>
       <main className={styles.container}>{children}</main>
@@ -15,10 +21,11 @@ export const AppLayout = ({ children }: PropsWithChildren) => {
           </a>
           <a
             className={`${styles.footerLink} ${styles.footerPlaceholder}`}
-            href=""
-            onClick={(event) => event.preventDefault()}
+            href={studioHref}
+            target="_blank"
+            rel="noreferrer"
           >
-            Triad Studio
+            {copy.studioName}
           </a>
         </div>
       </footer>

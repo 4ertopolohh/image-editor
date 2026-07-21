@@ -7,15 +7,16 @@ interface HeaderProps {
   language: Language
   copy: TranslationDictionary['header']
   languageToggleCopy: TranslationDictionary['languageToggle']
+  studioHref: string
   onLanguageChange: (language: Language) => void
 }
 
-export const Header = ({ language, copy, languageToggleCopy, onLanguageChange }: HeaderProps) => {
+export const Header = ({ language, copy, languageToggleCopy, studioHref, onLanguageChange }: HeaderProps) => {
   return (
     <header className={styles.header}>
       <div className={styles.topRow}>
         {/* <p className={styles.kicker}>{copy.kicker}</p> */}
-        <DevelopedTitle developedBy={copy.developedBy} studioName={copy.studioName} />
+        <DevelopedTitle developedBy={copy.developedBy} studioName={copy.studioName} studioHref={studioHref} />
         <LanguageToggle
           language={language}
           ruLabel={languageToggleCopy.ruLabel}
